@@ -13,9 +13,19 @@ SkillBridge is a two-sided marketplace in Malaysia connecting university student
 
 ## Tech Stack
 
-- **Frontend**: Next.js (React), TypeScript, Apollo Client / urql, Tailwind CSS. SSR/CSR rendering based on SEO requirements.
-- **Backend**: Django, Python, Django ORM, PostgreSQL. Using Django's built-in admin for back-office.
-- **Data Layer**: GraphQL (Strawberry or Graphene).
+- **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Apollo Client 4, Tailwind CSS v4. Dev: `http://localhost:3000`
+- **Backend**: Django 6, Python, Django ORM, SQLite (dev) → PostgreSQL (prod). Dev: `http://localhost:8000`
+- **Data Layer**: GraphQL via Strawberry (`strawberry-graphql[django]`). Endpoint: `/graphql/`
+
+## Apollo Client 4.x Import Paths (BREAKING vs v3)
+
+```ts
+// Core (ApolloClient, InMemoryCache, HttpLink, gql) — from @apollo/client
+import { ApolloClient, InMemoryCache, HttpLink, gql } from "@apollo/client";
+
+// React hooks and Provider — from @apollo/client/react
+import { ApolloProvider, useQuery, useMutation } from "@apollo/client/react";
+```
 
 ## Rules of Engagement
 
