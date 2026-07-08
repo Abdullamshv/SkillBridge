@@ -182,7 +182,9 @@ class Command(BaseCommand):
             sme_by_name = {}
             for t in TASKS:
                 if t["sme"] not in sme_by_name:
-                    sme_by_name[t["sme"]] = self._make_sme(t["sme"], t["industry"], t["loc"])
+                    sme_by_name[t["sme"]] = self._make_sme(
+                        t["sme"], t["industry"], t["loc"], t["rating"], t["rating_count"]
+                    )
 
             for t in TASKS:
                 self._make_task(t, sme_by_name[t["sme"]])
@@ -209,7 +211,7 @@ class Command(BaseCommand):
             f"All demo accounts use password '{DEMO_PASSWORD}'."
         ))
 
-    def _make_sme(self, name, industry, location):
+    def _make_sme(self, name, industry, location, rating, rating_count):
         username = slugify(name)[:150]
         user, _ = User.objects.update_or_create(
             username=username,
@@ -225,6 +227,8 @@ class Command(BaseCommand):
                 location=location,
                 ssm_number=f"SSM-{abs(hash(name)) % 900000 + 100000}",
                 is_verified=True,
+                rating=rating,
+                rating_count=rating_count,
             ),
         )
         return sme

@@ -69,7 +69,7 @@ class Mutation:
         role: str,
     ) -> UserType:
         from django.contrib.auth import login as auth_login
-        from users.models import User
+        from users.models import SMEProfile, StudentProfile, User
 
         if role not in ("student", "sme"):
             raise ValueError("Role must be 'student' or 'sme'")
@@ -78,6 +78,10 @@ class Mutation:
         user = User.objects.create_user(
             username=username, email=email, password=password, role=role
         )
+        if role == "student":
+            StudentProfile.objects.create(user=user)
+        else:
+            SMEProfile.objects.create(user=user)
         auth_login(info.context.request, user)
         return UserType.from_model(user)
 

@@ -2,21 +2,9 @@
 
 import Link from "next/link";
 import { formatRM, gradientFor, initials } from "@/src/lib/format";
+import type { StudentSummary as StudentCardProfile } from "@/src/graphql/types";
 
-export type StudentCardProfile = {
-  id: string;
-  university: string;
-  major: string;
-  primaryCategory: string;
-  skills: string[];
-  priceLow: string;
-  priceHigh: string;
-  availabilityStatus: string;
-  rating: number;
-  ratingCount: number;
-  isVetted: boolean;
-  user: { username: string };
-};
+export type { StudentCardProfile };
 
 export function StudentCard({
   student,

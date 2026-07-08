@@ -1,6 +1,20 @@
-import { gql } from "@apollo/client";
+import { gql, type TypedDocumentNode } from "@apollo/client";
+import type {
+  MeData,
+  NoVars,
+  ProjectData,
+  ProjectsData,
+  ProjectsVars,
+  ProjectVars,
+  SavedStudentIdsData,
+  SavedTaskIdsData,
+  StudentData,
+  StudentsData,
+  StudentsVars,
+  StudentVars,
+} from "./types";
 
-export const GET_ME = gql`
+export const GET_ME: TypedDocumentNode<MeData, NoVars> = gql`
   query GetMe {
     me {
       id
@@ -14,7 +28,7 @@ export const GET_ME = gql`
   }
 `;
 
-export const GET_PROJECTS = gql`
+export const GET_PROJECTS: TypedDocumentNode<ProjectsData, ProjectsVars> = gql`
   query GetProjects(
     $search: String
     $category: String
@@ -46,7 +60,7 @@ export const GET_PROJECTS = gql`
   }
 `;
 
-export const GET_PROJECT = gql`
+export const GET_PROJECT: TypedDocumentNode<ProjectData, ProjectVars> = gql`
   query GetProject($id: ID!) {
     project(id: $id) {
       id
@@ -94,13 +108,13 @@ export const GET_PROJECT = gql`
   }
 `;
 
-export const GET_SAVED_TASK_IDS = gql`
+export const GET_SAVED_TASK_IDS: TypedDocumentNode<SavedTaskIdsData, NoVars> = gql`
   query GetSavedTaskIds {
     savedTaskIds
   }
 `;
 
-export const GET_STUDENTS = gql`
+export const GET_STUDENTS: TypedDocumentNode<StudentsData, StudentsVars> = gql`
   query GetStudents(
     $search: String
     $category: String
@@ -136,7 +150,7 @@ export const GET_STUDENTS = gql`
   }
 `;
 
-export const GET_STUDENT = gql`
+export const GET_STUDENT: TypedDocumentNode<StudentData, StudentVars> = gql`
   query GetStudent($id: ID!) {
     student(id: $id) {
       id
@@ -160,11 +174,20 @@ export const GET_STUDENT = gql`
         username
         avatar
       }
+      reviews {
+        id
+        rating
+        comment
+        createdAt
+        reviewer {
+          username
+        }
+      }
     }
   }
 `;
 
-export const GET_SAVED_STUDENT_IDS = gql`
+export const GET_SAVED_STUDENT_IDS: TypedDocumentNode<SavedStudentIdsData, NoVars> = gql`
   query GetSavedStudentIds {
     savedStudentIds
   }

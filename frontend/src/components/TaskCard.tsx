@@ -3,16 +3,9 @@
 import Link from "next/link";
 import { taskCategoryLabel } from "@/src/lib/categories";
 import { dueInDays, formatRM, gradientFor, initials } from "@/src/lib/format";
+import type { ProjectSummary as TaskCardProject } from "@/src/graphql/types";
 
-export type TaskCardProject = {
-  id: string;
-  title: string;
-  category: string;
-  budget: string;
-  deadline: string;
-  requiredSkills: string[];
-  sme: { companyName: string; location: string; isVerified: boolean };
-};
+export type { TaskCardProject };
 
 export function TaskCard({
   project,

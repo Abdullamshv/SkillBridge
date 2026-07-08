@@ -32,9 +32,9 @@ class StudentProfile(models.Model):
         FROM = "from", "From a date"
 
     user            = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
-    university      = models.CharField(max_length=200)
-    major           = models.CharField(max_length=200)
-    graduation_year = models.PositiveSmallIntegerField()
+    university      = models.CharField(max_length=200, blank=True, default="")
+    major           = models.CharField(max_length=200, blank=True, default="")
+    graduation_year = models.PositiveSmallIntegerField(default=0)
     primary_category = models.CharField(max_length=20, choices=Category.choices, blank=True)
     skills          = models.JSONField(default=list)
     bio             = models.TextField(blank=True)
@@ -58,8 +58,8 @@ class StudentProfile(models.Model):
 
 class SMEProfile(models.Model):
     user         = models.OneToOneField(User, on_delete=models.CASCADE, related_name="sme_profile")
-    company_name = models.CharField(max_length=200)
-    industry     = models.CharField(max_length=100)
+    company_name = models.CharField(max_length=200, blank=True, default="")
+    industry     = models.CharField(max_length=100, blank=True, default="")
     location     = models.CharField(max_length=100, blank=True)  # "Kuala Lumpur", "Shah Alam"...
     website      = models.URLField(blank=True)
     description  = models.TextField(blank=True)
