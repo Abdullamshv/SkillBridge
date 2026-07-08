@@ -2,6 +2,10 @@ from django.db import models
 
 
 class Project(models.Model):
+    """A fixed-price task posted by an SME. Students reach out directly (see the
+    `engagements` app) rather than bidding — the price on a Project is what the
+    student gets paid, not a starting point for negotiation."""
+
     class Status(models.TextChoices):
         OPEN        = "open",        "Open"
         IN_PROGRESS = "in_progress", "In Progress"
@@ -10,20 +14,23 @@ class Project(models.Model):
         DISPUTED    = "disputed",    "Disputed"
 
     class Category(models.TextChoices):
-        DESIGN      = "design",      "Design"
-        COPYWRITING = "copywriting", "Copywriting"
-        DEVELOPMENT = "development", "Development"
-        MARKETING   = "marketing",   "Marketing"
-        OTHER       = "other",       "Other"
+        GRAPHIC_DESIGN   = "graphic_design",   "Graphic Design"
+        CONTENT_WRITING  = "content_writing",  "Content Writing"
+        SOCIAL_MEDIA     = "social_media",     "Social Media"
+        WEB_DEV          = "web_dev",          "Web Dev"
+        DATA             = "data",             "Data"
 
     sme              = models.ForeignKey("users.SMEProfile", on_delete=models.CASCADE, related_name="projects")
     assigned_student = models.ForeignKey("users.StudentProfile", on_delete=models.SET_NULL, null=True, blank=True, related_name="active_projects")
     title            = models.CharField(max_length=300)
     description      = models.TextField()
+    description_extra = models.TextField(blank=True)
     category         = models.CharField(max_length=20, choices=Category.choices)
-    budget           = models.DecimalField(max_digits=10, decimal_places=2)
+    budget           = models.DecimalField(max_digits=10, decimal_places=2)  # fixed price, paid to student
     deadline         = models.DateField()
     status           = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    required_skills  = models.JSONField(default=list)      # list[str]
+    looking_for_bullets = models.JSONField(default=list)   # list[str]
     created_at       = models.DateTimeField(auto_now_add=True)
     updated_at       = models.DateTimeField(auto_now=True)
 
@@ -31,29 +38,40 @@ class Project(models.Model):
         return f"{self.title} [{self.status}]"
 
 
-class Proposal(models.Model):
-    class Status(models.TextChoices):
-        PENDING  = "pending",  "Pending"
-        ACCEPTED = "accepted", "Accepted"
-        REJECTED = "rejected", "Rejected"
-
-    project         = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="proposals")
-    student         = models.ForeignKey("users.StudentProfile", on_delete=models.CASCADE, related_name="proposals")
-    cover_letter    = models.TextField()
-    proposed_budget = models.DecimalField(max_digits=10, decimal_places=2)
-    proposed_days   = models.PositiveSmallIntegerField()
-    status          = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
-    created_at      = models.DateTimeField(auto_now_add=True)
+class ProjectMilestone(models.Model):
+    project  = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="milestones")
+    label    = models.CharField(max_length=120)
+    note     = models.CharField(max_length=200, blank=True)
+    due_date = models.DateField()
+    order    = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
-        unique_together = ("project", "student")
+        ordering = ["order"]
 
     def __str__(self):
-        return f"{self.student} → {self.project.title} [{self.status}]"
+        return f"{self.project.title} — {self.label}"
+
+
+class SavedTask(models.Model):
+    student    = models.ForeignKey("users.StudentProfile", on_delete=models.CASCADE, related_name="saved_tasks")
+    project    = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="saved_by")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("student", "project")
+
+
+class SavedStudent(models.Model):
+    sme        = models.ForeignKey("users.SMEProfile", on_delete=models.CASCADE, related_name="saved_students")
+    student    = models.ForeignKey("users.StudentProfile", on_delete=models.CASCADE, related_name="saved_by")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("sme", "student")
 
 
 class Review(models.Model):
-    project    = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="reviews")
+    project    = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="reviews", null=True, blank=True)
     reviewer   = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="reviews_given")
     reviewee   = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="reviews_received")
     rating     = models.PositiveSmallIntegerField()
@@ -61,7 +79,7 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("project", "reviewer")
+        unique_together = ("project", "reviewer", "reviewee")
 
     def __str__(self):
         return f"{self.reviewer} → {self.reviewee} ({self.rating}★)"

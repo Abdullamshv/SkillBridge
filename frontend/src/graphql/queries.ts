@@ -15,21 +15,32 @@ export const GET_ME = gql`
 `;
 
 export const GET_PROJECTS = gql`
-  query GetProjects($status: String, $category: String) {
-    projects(status: $status, category: $category) {
+  query GetProjects(
+    $search: String
+    $category: String
+    $minPrice: String
+    $maxPrice: String
+    $sort: String
+  ) {
+    projects(
+      search: $search
+      category: $category
+      minPrice: $minPrice
+      maxPrice: $maxPrice
+      sort: $sort
+    ) {
       id
       title
-      description
       category
       budget
       deadline
-      status
       createdAt
+      requiredSkills
       sme {
         id
         companyName
-        industry
-        rating
+        location
+        isVerified
       }
     }
   }
@@ -41,18 +52,31 @@ export const GET_PROJECT = gql`
       id
       title
       description
+      descriptionExtra
       category
       budget
+      platformFee
+      businessTotal
       deadline
       status
-      createdAt
+      requiredSkills
+      lookingForBullets
+      milestones {
+        id
+        label
+        note
+        dueDate
+      }
       sme {
         id
         companyName
-        industry
+        location
         website
+        isVerified
         rating
+        ratingCount
         user {
+          id
           username
           avatar
         }
@@ -60,7 +84,6 @@ export const GET_PROJECT = gql`
       assignedStudent {
         id
         university
-        major
         rating
         user {
           username
@@ -71,37 +94,78 @@ export const GET_PROJECT = gql`
   }
 `;
 
-export const GET_MY_PROJECTS = gql`
-  query GetMyProjects {
-    myProjects {
+export const GET_SAVED_TASK_IDS = gql`
+  query GetSavedTaskIds {
+    savedTaskIds
+  }
+`;
+
+export const GET_STUDENTS = gql`
+  query GetStudents(
+    $search: String
+    $category: String
+    $minPrice: String
+    $maxPrice: String
+    $minRating: Float
+  ) {
+    students(
+      search: $search
+      category: $category
+      minPrice: $minPrice
+      maxPrice: $maxPrice
+      minRating: $minRating
+    ) {
       id
-      title
-      category
-      budget
-      deadline
-      status
-      createdAt
+      university
+      major
+      primaryCategory
+      skills
+      priceLow
+      priceHigh
+      availabilityStatus
+      availableFrom
+      rating
+      ratingCount
+      isVetted
+      user {
+        id
+        username
+        avatar
+      }
     }
   }
 `;
 
-export const GET_MY_PROPOSALS = gql`
-  query GetMyProposals {
-    myProposals {
+export const GET_STUDENT = gql`
+  query GetStudent($id: ID!) {
+    student(id: $id) {
       id
-      proposedBudget
-      proposedDays
-      status
-      createdAt
-      project {
+      university
+      major
+      graduationYear
+      primaryCategory
+      skills
+      bio
+      portfolioUrl
+      languages
+      priceLow
+      priceHigh
+      availabilityStatus
+      availableFrom
+      rating
+      ratingCount
+      isVetted
+      user {
         id
-        title
-        category
-        deadline
-        sme {
-          companyName
-        }
+        username
+        avatar
       }
     }
+  }
+`;
+
+export const GET_SAVED_STUDENT_IDS = gql`
+  query GetSavedStudentIds {
+    savedStudentIds
   }
 `;

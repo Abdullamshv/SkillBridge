@@ -27,120 +27,6 @@ class UserType:
 
 
 @strawberry.type
-class StudentProfileType:
-    id: strawberry.ID
-    university: str
-    major: str
-    graduation_year: int
-    skills: List[str]
-    bio: str
-    portfolio_url: str
-    rating: float
-    rating_count: int
-    user: UserType
-
-    @classmethod
-    def from_model(cls, profile: Any) -> "StudentProfileType":
-        return cls(
-            id=strawberry.ID(str(profile.id)),
-            university=profile.university,
-            major=profile.major,
-            graduation_year=profile.graduation_year,
-            skills=list(profile.skills) if profile.skills else [],
-            bio=profile.bio,
-            portfolio_url=profile.portfolio_url,
-            rating=float(profile.rating),
-            rating_count=profile.rating_count,
-            user=UserType.from_model(profile.user),
-        )
-
-
-@strawberry.type
-class SMEProfileType:
-    id: strawberry.ID
-    company_name: str
-    industry: str
-    website: str
-    description: str
-    is_verified: bool
-    rating: float
-    rating_count: int
-    user: UserType
-
-    @classmethod
-    def from_model(cls, sme: Any) -> "SMEProfileType":
-        return cls(
-            id=strawberry.ID(str(sme.id)),
-            company_name=sme.company_name,
-            industry=sme.industry,
-            website=sme.website,
-            description=sme.description,
-            is_verified=sme.is_verified,
-            rating=float(sme.rating),
-            rating_count=sme.rating_count,
-            user=UserType.from_model(sme.user),
-        )
-
-
-@strawberry.type
-class ProjectType:
-    id: strawberry.ID
-    title: str
-    description: str
-    category: str
-    budget: str
-    deadline: datetime.date
-    status: str
-    created_at: datetime.datetime
-    sme: SMEProfileType
-    assigned_student: Optional[StudentProfileType]
-
-    @classmethod
-    def from_model(cls, project: Any) -> "ProjectType":
-        return cls(
-            id=strawberry.ID(str(project.id)),
-            title=project.title,
-            description=project.description,
-            category=project.category,
-            budget=str(project.budget),
-            deadline=project.deadline,
-            status=project.status,
-            created_at=project.created_at,
-            sme=SMEProfileType.from_model(project.sme),
-            assigned_student=(
-                StudentProfileType.from_model(project.assigned_student)
-                if project.assigned_student_id
-                else None
-            ),
-        )
-
-
-@strawberry.type
-class ProposalType:
-    id: strawberry.ID
-    cover_letter: str
-    proposed_budget: str
-    proposed_days: int
-    status: str
-    created_at: datetime.datetime
-    project: ProjectType
-    student: StudentProfileType
-
-    @classmethod
-    def from_model(cls, proposal: Any) -> "ProposalType":
-        return cls(
-            id=strawberry.ID(str(proposal.id)),
-            cover_letter=proposal.cover_letter,
-            proposed_budget=str(proposal.proposed_budget),
-            proposed_days=proposal.proposed_days,
-            status=proposal.status,
-            created_at=proposal.created_at,
-            project=ProjectType.from_model(proposal.project),
-            student=StudentProfileType.from_model(proposal.student),
-        )
-
-
-@strawberry.type
 class ReviewType:
     id: strawberry.ID
     rating: int
@@ -162,6 +48,192 @@ class ReviewType:
 
 
 @strawberry.type
+class StudentProfileType:
+    id: strawberry.ID
+    university: str
+    major: str
+    graduation_year: int
+    primary_category: str
+    skills: List[str]
+    bio: str
+    portfolio_url: str
+    languages: str
+    price_low: str
+    price_high: str
+    availability_status: str
+    available_from: Optional[datetime.date]
+    rating: float
+    rating_count: int
+    is_vetted: bool
+    user: UserType
+    reviews: List[ReviewType]
+
+    @classmethod
+    def from_model(cls, profile: Any) -> "StudentProfileType":
+        return cls(
+            id=strawberry.ID(str(profile.id)),
+            university=profile.university,
+            major=profile.major,
+            graduation_year=profile.graduation_year,
+            primary_category=profile.primary_category,
+            skills=list(profile.skills) if profile.skills else [],
+            bio=profile.bio,
+            portfolio_url=profile.portfolio_url,
+            languages=profile.languages,
+            price_low=str(profile.price_low),
+            price_high=str(profile.price_high),
+            availability_status=profile.availability_status,
+            available_from=profile.available_from,
+            rating=float(profile.rating),
+            rating_count=profile.rating_count,
+            is_vetted=profile.is_vetted,
+            user=UserType.from_model(profile.user),
+            reviews=[ReviewType.from_model(r) for r in profile.user.reviews_received.select_related("reviewer").all()],
+        )
+
+
+@strawberry.type
+class SMEProfileType:
+    id: strawberry.ID
+    company_name: str
+    industry: str
+    location: str
+    website: str
+    description: str
+    ssm_number: str
+    is_verified: bool
+    rating: float
+    rating_count: int
+    user: UserType
+
+    @classmethod
+    def from_model(cls, sme: Any) -> "SMEProfileType":
+        return cls(
+            id=strawberry.ID(str(sme.id)),
+            company_name=sme.company_name,
+            industry=sme.industry,
+            location=sme.location,
+            website=sme.website,
+            description=sme.description,
+            ssm_number=sme.ssm_number,
+            is_verified=sme.is_verified,
+            rating=float(sme.rating),
+            rating_count=sme.rating_count,
+            user=UserType.from_model(sme.user),
+        )
+
+
+@strawberry.type
+class ProjectMilestoneType:
+    id: strawberry.ID
+    label: str
+    note: str
+    due_date: datetime.date
+    order: int
+
+    @classmethod
+    def from_model(cls, milestone: Any) -> "ProjectMilestoneType":
+        return cls(
+            id=strawberry.ID(str(milestone.id)),
+            label=milestone.label,
+            note=milestone.note,
+            due_date=milestone.due_date,
+            order=milestone.order,
+        )
+
+
+@strawberry.type
+class ProjectType:
+    id: strawberry.ID
+    title: str
+    description: str
+    description_extra: str
+    category: str
+    budget: str
+    platform_fee: str
+    business_total: str
+    deadline: datetime.date
+    status: str
+    required_skills: List[str]
+    looking_for_bullets: List[str]
+    created_at: datetime.datetime
+    sme: SMEProfileType
+    assigned_student: Optional[StudentProfileType]
+    milestones: List[ProjectMilestoneType]
+
+    @classmethod
+    def from_model(cls, project: Any) -> "ProjectType":
+        from payments.services import calculate_business_total, calculate_fee
+
+        return cls(
+            id=strawberry.ID(str(project.id)),
+            title=project.title,
+            description=project.description,
+            description_extra=project.description_extra,
+            category=project.category,
+            budget=str(project.budget),
+            platform_fee=str(calculate_fee(project.budget)),
+            business_total=str(calculate_business_total(project.budget)),
+            deadline=project.deadline,
+            status=project.status,
+            required_skills=list(project.required_skills) if project.required_skills else [],
+            looking_for_bullets=list(project.looking_for_bullets) if project.looking_for_bullets else [],
+            created_at=project.created_at,
+            sme=SMEProfileType.from_model(project.sme),
+            assigned_student=(
+                StudentProfileType.from_model(project.assigned_student)
+                if project.assigned_student_id
+                else None
+            ),
+            milestones=[ProjectMilestoneType.from_model(m) for m in project.milestones.all()],
+        )
+
+
+@strawberry.type
+class MessageType:
+    id: strawberry.ID
+    text: str
+    created_at: datetime.datetime
+    sender: UserType
+
+    @classmethod
+    def from_model(cls, message: Any) -> "MessageType":
+        return cls(
+            id=strawberry.ID(str(message.id)),
+            text=message.text,
+            created_at=message.created_at,
+            sender=UserType.from_model(message.sender),
+        )
+
+
+@strawberry.type
+class EngagementType:
+    id: strawberry.ID
+    status: str
+    agreed_price: Optional[str]
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    project: Optional[ProjectType]
+    sme: SMEProfileType
+    student: StudentProfileType
+    messages: List[MessageType]
+
+    @classmethod
+    def from_model(cls, engagement: Any) -> "EngagementType":
+        return cls(
+            id=strawberry.ID(str(engagement.id)),
+            status=engagement.status,
+            agreed_price=str(engagement.agreed_price) if engagement.agreed_price is not None else None,
+            created_at=engagement.created_at,
+            updated_at=engagement.updated_at,
+            project=ProjectType.from_model(engagement.project) if engagement.project_id else None,
+            sme=SMEProfileType.from_model(engagement.sme),
+            student=StudentProfileType.from_model(engagement.student),
+            messages=[MessageType.from_model(m) for m in engagement.messages.all()],
+        )
+
+
+@strawberry.type
 class TransactionType:
     id: strawberry.ID
     amount: str
@@ -179,4 +251,21 @@ class TransactionType:
             status=tx.status,
             payment_reference=tx.payment_reference,
             created_at=tx.created_at,
+        )
+
+
+@strawberry.type
+class LedgerEntryType:
+    id: strawberry.ID
+    kind: str
+    amount: str
+    created_at: datetime.datetime
+
+    @classmethod
+    def from_model(cls, entry: Any) -> "LedgerEntryType":
+        return cls(
+            id=strawberry.ID(str(entry.id)),
+            kind=entry.kind,
+            amount=str(entry.amount),
+            created_at=entry.created_at,
         )
