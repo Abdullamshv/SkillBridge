@@ -1,5 +1,9 @@
 import { gql, type TypedDocumentNode } from "@apollo/client";
 import type {
+  AdvanceStatusData,
+  AdvanceStatusVars,
+  FundEscrowData,
+  FundEscrowVars,
   LoginData,
   LoginVars,
   LogoutData,
@@ -12,6 +16,10 @@ import type {
   SaveStudentVars,
   SaveTaskData,
   SaveTaskVars,
+  SendMessageData,
+  SendMessageVars,
+  SubmitReviewData,
+  SubmitReviewVars,
   UnsaveStudentData,
   UnsaveTaskData,
 } from "./types";
@@ -85,6 +93,43 @@ export const REACH_OUT: TypedDocumentNode<ReachOutData, ReachOutVars> = gql`
     reachOut(message: $message, projectId: $projectId, studentId: $studentId) {
       id
       status
+    }
+  }
+`;
+
+export const SEND_MESSAGE: TypedDocumentNode<SendMessageData, SendMessageVars> = gql`
+  mutation SendMessage($engagementId: ID!, $text: String!) {
+    sendMessage(engagementId: $engagementId, text: $text) {
+      id
+    }
+  }
+`;
+
+export const ADVANCE_ENGAGEMENT_STATUS: TypedDocumentNode<AdvanceStatusData, AdvanceStatusVars> = gql`
+  mutation AdvanceEngagementStatus($engagementId: ID!, $status: String!, $agreedPrice: String) {
+    advanceEngagementStatus(engagementId: $engagementId, status: $status, agreedPrice: $agreedPrice) {
+      id
+      status
+    }
+  }
+`;
+
+export const FUND_ESCROW: TypedDocumentNode<FundEscrowData, FundEscrowVars> = gql`
+  mutation FundEscrow($engagementId: ID!) {
+    fundEscrow(engagementId: $engagementId) {
+      id
+      status
+      amount
+      platformFee
+    }
+  }
+`;
+
+export const SUBMIT_REVIEW: TypedDocumentNode<SubmitReviewData, SubmitReviewVars> = gql`
+  mutation SubmitReview($engagementId: ID!, $rating: Int!, $comment: String) {
+    submitReview(engagementId: $engagementId, rating: $rating, comment: $comment) {
+      id
+      rating
     }
   }
 `;

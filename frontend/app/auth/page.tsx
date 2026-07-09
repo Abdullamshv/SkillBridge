@@ -6,6 +6,7 @@ import { useMutation } from "@apollo/client/react";
 import { LOGIN, REGISTER } from "@/src/graphql/mutations";
 import { GET_ME } from "@/src/graphql/queries";
 import { Navbar } from "@/src/components/Navbar";
+import { friendlyError } from "@/src/lib/errors";
 
 function AuthForm() {
   const router = useRouter();
@@ -41,7 +42,7 @@ function AuthForm() {
       }
       router.push("/home");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(friendlyError(err));
     }
   }
 

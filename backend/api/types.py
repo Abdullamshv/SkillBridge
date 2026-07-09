@@ -190,11 +190,29 @@ class ProjectType:
 
 
 @strawberry.type
+class AttachmentType:
+    id: strawberry.ID
+    original_name: str
+    size_bytes: int
+    url: str
+
+    @classmethod
+    def from_model(cls, attachment: Any) -> "AttachmentType":
+        return cls(
+            id=strawberry.ID(str(attachment.id)),
+            original_name=attachment.original_name,
+            size_bytes=attachment.size_bytes,
+            url=attachment.file.url if attachment.file else "",
+        )
+
+
+@strawberry.type
 class MessageType:
     id: strawberry.ID
     text: str
     created_at: datetime.datetime
     sender: UserType
+    attachments: List[AttachmentType]
 
     @classmethod
     def from_model(cls, message: Any) -> "MessageType":
@@ -203,33 +221,7 @@ class MessageType:
             text=message.text,
             created_at=message.created_at,
             sender=UserType.from_model(message.sender),
-        )
-
-
-@strawberry.type
-class EngagementType:
-    id: strawberry.ID
-    status: str
-    agreed_price: Optional[str]
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
-    project: Optional[ProjectType]
-    sme: SMEProfileType
-    student: StudentProfileType
-    messages: List[MessageType]
-
-    @classmethod
-    def from_model(cls, engagement: Any) -> "EngagementType":
-        return cls(
-            id=strawberry.ID(str(engagement.id)),
-            status=engagement.status,
-            agreed_price=str(engagement.agreed_price) if engagement.agreed_price is not None else None,
-            created_at=engagement.created_at,
-            updated_at=engagement.updated_at,
-            project=ProjectType.from_model(engagement.project) if engagement.project_id else None,
-            sme=SMEProfileType.from_model(engagement.sme),
-            student=StudentProfileType.from_model(engagement.student),
-            messages=[MessageType.from_model(m) for m in engagement.messages.all()],
+            attachments=[AttachmentType.from_model(a) for a in message.attachments.all()],
         )
 
 
@@ -255,6 +247,38 @@ class TransactionType:
 
 
 @strawberry.type
+class EngagementType:
+    id: strawberry.ID
+    status: str
+    agreed_price: Optional[str]
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    project: Optional[ProjectType]
+    sme: SMEProfileType
+    student: StudentProfileType
+    messages: List[MessageType]
+    transaction: Optional[TransactionType]
+    reviewer_usernames: List[str]
+
+    @classmethod
+    def from_model(cls, engagement: Any) -> "EngagementType":
+        tx = getattr(engagement, "transaction", None)  # reverse OneToOne may not exist
+        return cls(
+            id=strawberry.ID(str(engagement.id)),
+            status=engagement.status,
+            agreed_price=str(engagement.agreed_price) if engagement.agreed_price is not None else None,
+            created_at=engagement.created_at,
+            updated_at=engagement.updated_at,
+            project=ProjectType.from_model(engagement.project) if engagement.project_id else None,
+            sme=SMEProfileType.from_model(engagement.sme),
+            student=StudentProfileType.from_model(engagement.student),
+            messages=[MessageType.from_model(m) for m in engagement.messages.all()],
+            transaction=TransactionType.from_model(tx) if tx else None,
+            reviewer_usernames=[r.reviewer.username for r in engagement.reviews.all()],
+        )
+
+
+@strawberry.type
 class LedgerEntryType:
     id: strawberry.ID
     kind: str
@@ -268,4 +292,34 @@ class LedgerEntryType:
             kind=entry.kind,
             amount=str(entry.amount),
             created_at=entry.created_at,
+        )
+
+
+@strawberry.type
+class WalletMonthType:
+    label: str
+    value: str
+
+
+@strawberry.type
+class WalletStatsType:
+    this_month_total: str
+    escrow_held: str
+    active_total: str
+    active_count: int
+    fees_this_month: str
+    months: List[WalletMonthType]
+
+    @classmethod
+    def from_stats(cls, stats: dict) -> "WalletStatsType":
+        return cls(
+            this_month_total=str(stats["this_month_total"]),
+            escrow_held=str(stats["escrow_held"]),
+            active_total=str(stats["active_total"]),
+            active_count=stats["active_count"],
+            fees_this_month=str(stats["fees_this_month"]),
+            months=[
+                WalletMonthType(label=m["label"], value=str(m["value"]))
+                for m in stats["months"]
+            ],
         )

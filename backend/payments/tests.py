@@ -1,15 +1,34 @@
+import datetime
+
 from decimal import Decimal
 
 from django.test import TestCase
+from django.utils import timezone
 
 from engagements.models import Engagement
-from payments.models import Transaction
+from engagements.services import advance_status
+from payments.models import LedgerEntry, Transaction
 from payments.services import (
+    approve_completion,
     calculate_business_total,
     calculate_fee,
     calculate_student_payout,
+    fund_escrow,
+    release_escrow,
+    wallet_stats_for,
 )
+from projects.models import Project
 from users.models import SMEProfile, StudentProfile, User
+
+
+def make_parties():
+    student_user = User.objects.create_user(username="student1", password="x", role="student")
+    sme_user = User.objects.create_user(username="sme1", password="x", role="sme")
+    student = StudentProfile.objects.create(
+        user=student_user, university="UM", major="CS", graduation_year=2027,
+    )
+    sme = SMEProfile.objects.create(user=sme_user, company_name="Acme")
+    return student_user, sme_user, student, sme
 
 
 class FeeMathTests(TestCase):
@@ -40,31 +59,113 @@ class FeeMathTests(TestCase):
             self.assertEqual(calculate_student_payout(price), price)
 
 
-class EscrowIntegrityTests(TestCase):
-    """A Transaction can only be released once, and only from HELD."""
-
+class EscrowLifecycleTests(TestCase):
     def setUp(self):
-        student_user = User.objects.create_user(username="student1", password="x", role="student")
-        sme_user = User.objects.create_user(username="sme1", password="x", role="sme")
-        student = StudentProfile.objects.create(
-            user=student_user, university="UM", major="CS", graduation_year=2027,
+        self.student_user, self.sme_user, self.student, self.sme = make_parties()
+        self.project = Project.objects.create(
+            sme=self.sme, title="Task", description="d",
+            category=Project.Category.GRAPHIC_DESIGN,
+            budget=Decimal("350.00"),
+            deadline=timezone.now().date() + datetime.timedelta(days=7),
         )
-        sme = SMEProfile.objects.create(user=sme_user, company_name="Acme")
-        engagement = Engagement.objects.create(sme=sme, student=student)
-        self.tx = Transaction.objects.create(
-            engagement=engagement, amount=Decimal("100.00"), platform_fee=Decimal("2.00"),
-            status=Transaction.Status.HELD,
+        self.engagement = Engagement.objects.create(
+            sme=self.sme, student=self.student, project=self.project,
+            status=Engagement.Status.AGREED, agreed_price=Decimal("350.00"),
         )
 
-    def test_pending_transaction_cannot_be_released(self):
-        self.tx.status = Transaction.Status.PENDING
-        self.tx.save()
-        with self.assertRaises(Transaction.DoesNotExist):
-            Transaction.objects.get(pk=self.tx.pk, status=Transaction.Status.HELD)
+    def test_fund_creates_held_tx_and_business_ledger_rows(self):
+        tx = fund_escrow(self.engagement)
+        self.assertEqual(tx.status, Transaction.Status.HELD)
+        self.assertEqual(tx.amount, Decimal("350.00"))
+        self.assertEqual(tx.platform_fee, Decimal("7.00"))
 
-    def test_release_then_re_release_is_rejected(self):
-        held = Transaction.objects.get(pk=self.tx.pk, status=Transaction.Status.HELD)
-        held.status = Transaction.Status.RELEASED
-        held.save()
+        spend = LedgerEntry.objects.get(user=self.sme_user, kind=LedgerEntry.Kind.SPEND)
+        fee = LedgerEntry.objects.get(user=self.sme_user, kind=LedgerEntry.Kind.FEE)
+        self.assertEqual(spend.amount, Decimal("357.00"))
+        self.assertEqual(fee.amount, Decimal("7.00"))
+        self.assertEqual(LedgerEntry.objects.count(), 2)  # no student earning yet
+
+    def test_double_fund_rejected(self):
+        fund_escrow(self.engagement)
+        with self.assertRaises(ValueError):
+            fund_escrow(self.engagement)
+
+    def test_fund_falls_back_to_project_budget(self):
+        self.engagement.agreed_price = None
+        self.engagement.save()
+        tx = fund_escrow(self.engagement)
+        self.assertEqual(tx.amount, Decimal("350.00"))
+
+    def test_approve_without_funding_rejected(self):
+        advance_status(self.engagement, Engagement.Status.IN_PROGRESS, self.student_user)
+        advance_status(self.engagement, Engagement.Status.DELIVERED, self.student_user)
+        with self.assertRaises(ValueError):
+            approve_completion(self.engagement, self.sme_user)
+        self.engagement.refresh_from_db()
+        self.assertEqual(self.engagement.status, Engagement.Status.DELIVERED)
+
+    def test_full_lifecycle_releases_exactly_once(self):
+        fund_escrow(self.engagement)
+        advance_status(self.engagement, Engagement.Status.IN_PROGRESS, self.student_user)
+        advance_status(self.engagement, Engagement.Status.DELIVERED, self.student_user)
+        tx = approve_completion(self.engagement, self.sme_user)
+
+        self.assertEqual(tx.status, Transaction.Status.RELEASED)
+        self.engagement.refresh_from_db()
+        self.assertEqual(self.engagement.status, Engagement.Status.COMPLETED)
+        earning = LedgerEntry.objects.get(user=self.student_user, kind=LedgerEntry.Kind.EARNING)
+        self.assertEqual(earning.amount, Decimal("350.00"))  # 100%, no fee
+
+        with self.assertRaises(ValueError):
+            approve_completion(self.engagement, self.sme_user)
+        self.assertEqual(
+            LedgerEntry.objects.filter(kind=LedgerEntry.Kind.EARNING).count(), 1
+        )
+
+    def test_release_requires_held(self):
         with self.assertRaises(Transaction.DoesNotExist):
-            Transaction.objects.get(pk=self.tx.pk, status=Transaction.Status.HELD)
+            release_escrow(self.engagement)
+
+
+class WalletStatsTests(TestCase):
+    def setUp(self):
+        self.student_user, self.sme_user, self.student, self.sme = make_parties()
+        self.engagement = Engagement.objects.create(
+            sme=self.sme, student=self.student,
+            status=Engagement.Status.AGREED, agreed_price=Decimal("100.00"),
+        )
+        fund_escrow(self.engagement)  # SPEND 102, FEE 2 this month, HELD 100
+
+    def test_business_stats(self):
+        stats = wallet_stats_for(self.sme_user)
+        self.assertEqual(stats["this_month_total"], Decimal("102.00"))
+        self.assertEqual(stats["fees_this_month"], Decimal("2.00"))
+        self.assertEqual(stats["escrow_held"], Decimal("100.00"))
+        self.assertEqual(stats["active_count"], 1)
+        self.assertEqual(stats["active_total"], Decimal("100.00"))
+        self.assertEqual(len(stats["months"]), 6)
+        self.assertEqual(stats["months"][-1]["value"], Decimal("102.00"))
+
+    def test_student_stats_before_and_after_release(self):
+        stats = wallet_stats_for(self.student_user)
+        self.assertEqual(stats["this_month_total"], Decimal("0.00"))
+        self.assertEqual(stats["escrow_held"], Decimal("100.00"))
+
+        advance_status(self.engagement, Engagement.Status.IN_PROGRESS, self.student_user)
+        advance_status(self.engagement, Engagement.Status.DELIVERED, self.student_user)
+        approve_completion(self.engagement, self.sme_user)
+
+        stats = wallet_stats_for(self.student_user)
+        self.assertEqual(stats["this_month_total"], Decimal("100.00"))
+        self.assertEqual(stats["escrow_held"], Decimal("0.00"))
+        self.assertEqual(stats["active_count"], 0)
+
+    def test_old_entries_stay_out_of_this_month(self):
+        old = LedgerEntry.objects.create(
+            user=self.sme_user, kind=LedgerEntry.Kind.SPEND, amount=Decimal("999.00")
+        )
+        LedgerEntry.objects.filter(pk=old.pk).update(
+            created_at=timezone.now() - datetime.timedelta(days=90)
+        )
+        stats = wallet_stats_for(self.sme_user)
+        self.assertEqual(stats["this_month_total"], Decimal("102.00"))

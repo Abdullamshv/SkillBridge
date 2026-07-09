@@ -10,22 +10,28 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# Environment-driven settings — dev-friendly defaults, overridable in prod.
+# SECURITY WARNING: set DJANGO_SECRET_KEY and DJANGO_DEBUG=false in production!
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-#u7!9x*d!44i@q3=*n-=*!in(!+yx#yw%-6d21o%uhb9km2x9(",
+)
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-#u7!9x*d!44i@q3=*n-=*!in(!+yx#yw%-6d21o%uhb9km2x9("
+DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if h.strip()
+]
 
 
 # Application definition
@@ -86,12 +92,26 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Set POSTGRES_DB (+ USER/PASSWORD/HOST/PORT) to use Postgres; SQLite otherwise.
+# Postgres additionally needs `pip install psycopg[binary]` — see README.
+if os.environ.get("POSTGRES_DB"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ["POSTGRES_DB"],
+            "USER": os.environ.get("POSTGRES_USER", "postgres"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -129,3 +149,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+# Media (user uploads) — local disk in dev; production should move to
+# django-storages + S3/R2 with presigned uploads (see README).
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
