@@ -37,6 +37,33 @@ The prototype is a single self‑contained HTML file with 8 client‑side "scree
 If you'd rather go **Django REST Framework + separate frontend (React/Vue)** instead of server-rendered templates (e.g. because you want a native mobile app soon), everything in §5–§9 (models, business logic, state machine) stays identical — only §6 (views/templates) and §10 (chat) change shape. Flag it and I'll re-cut those two sections.
 
 ---
+## 1.2 Design System & Visual Language
+
+The visual identity of SkillBridge is clean, trustworthy, and modern, designed to feel like a premium SaaS product rather than a traditional, cluttered gig board. When building the frontend templates (Django + HTML/CSS), adhere to these core UI/UX principles derived from the design files:
+
+**1. Color Palette**
+* **Primary Brand (Action & Focus):** Vibrant Indigo/Purple. Used for primary buttons, active states, and the main logo. (Reference: The gradient `linear-gradient(135deg, #4E3FE3, #7B62F2)` mentioned in the models).
+* **Backgrounds:** Very light, cool gray/blue (e.g., `#F7F9FC`) for the main application background. This ensures that the white content cards pop out.
+* **Cards & Surfaces:** Pure White (`#FFFFFF`).
+* **Text:** Dark slate/charcoal for primary text (high legibility), medium gray for secondary text and descriptions.
+* **Semantic Accents:** * *Green:* Used for "Delivered" statuses, checkmarks, and positive highlights (e.g., "RM 0" fee for students).
+    * *Orange:* Used for SME-specific actions/labels (e.g., "I'm a business" CTA) to visually separate them from student actions.
+
+**2. Typography**
+* **Font Family:** A clean, modern sans-serif (e.g., Inter, SF Pro, or Roboto). 
+* **Hierarchy:** Strong contrast in font weights. Main headings are bold and prominent, while standard paragraph text is light and breathable.
+
+**3. Core UI Components**
+* **Cards:** The fundamental building block. Every task, profile, and stat block is a card. They feature **large border-radiuses** (approx. 16px - 24px) and **soft, diffuse drop shadows** (no harsh borders).
+* **Buttons:** Pill-shaped (fully rounded ends). Primary actions use the solid indigo color; secondary actions are often subtle outlines or text-only links.
+* **Chips & Tags:** Used extensively for categories, skills, and statuses. These are small, pill-shaped elements with light backgrounds and colored text (e.g., a light purple background with dark purple text for design skills).
+* **Progress Tracker:** The escrow/engagement state (Reached out → Agreed → In progress → Delivered → Completed) is represented as a horizontal timeline with connected dots. Active/completed steps are solid indigo; future steps are gray.
+
+**4. Layout Patterns**
+* **Dashboard Structure:** The main app uses a sticky top navigation bar featuring the logo, primary links (Home, Office, Wallet), role-switcher, and user avatar.
+* **Detail Pages (Task/Profile):** Utilizes an asymmetrical two-column layout. The left column (roughly 65-70% width) holds the heavy content (descriptions, required skills), while the right sidebar contains sticky, actionable summaries (Cost breakdown, Quick facts, CTAs).
+* **Spacing:** Generous padding inside cards and significant margins between sections. Avoid dense, cramped text blocks.
+---
 
 ## 2. Screens Inventory (what you're building)
 
