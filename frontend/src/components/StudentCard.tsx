@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { formatRM, gradientFor, initials } from "@/src/lib/format";
+import { VettedBadge } from "@/src/components/ui/Badge";
+import { BookmarkIcon } from "@/src/components/ui/BookmarkIcon";
 import type { StudentSummary as StudentCardProfile } from "@/src/graphql/types";
 
 export type { StudentCardProfile };
@@ -16,7 +18,7 @@ export function StudentCard({
   onToggleSave?: (id: string) => void;
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="flex flex-col rounded-2xl bg-white p-5 shadow-card transition-shadow hover:shadow-card-hover">
       <div className="flex items-start gap-3">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-extrabold text-white"
@@ -27,11 +29,7 @@ export function StudentCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-bold text-ink">{student.user.username}</span>
-            {student.isVetted && (
-              <span className="shrink-0 text-[10px] font-bold text-brand" title="Campus-vetted">
-                ✓
-              </span>
-            )}
+            {student.isVetted && <VettedBadge compact />}
           </div>
           <span className="text-xs font-medium text-muted">{student.university}</span>
         </div>
@@ -39,9 +37,9 @@ export function StudentCard({
           <button
             onClick={() => onToggleSave(student.id)}
             aria-label={saved ? "Unsave student" : "Save student"}
-            className="shrink-0 text-lg"
+            className="shrink-0 transition-transform hover:scale-110"
           >
-            {saved ? "♥" : "♡"}
+            <BookmarkIcon saved={saved} />
           </button>
         )}
       </div>
@@ -54,7 +52,7 @@ export function StudentCard({
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {student.skills.slice(0, 3).map((s) => (
-          <span key={s} className="rounded-full bg-bg px-2.5 py-1 text-[11px] font-semibold text-muted">
+          <span key={s} className="rounded-full bg-brand-tint px-2.5 py-1 text-[11px] font-bold text-brand">
             {s}
           </span>
         ))}

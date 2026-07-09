@@ -6,6 +6,7 @@ import { GET_STUDENTS, GET_SAVED_STUDENT_IDS } from "@/src/graphql/queries";
 import { SAVE_STUDENT, UNSAVE_STUDENT } from "@/src/graphql/mutations";
 import { STUDENT_CATEGORIES, SPRICE_OPTS, RATE_OPTS } from "@/src/lib/categories";
 import { Chip } from "@/src/components/Chip";
+import { SearchBar } from "@/src/components/ui/SearchBar";
 import { StudentCard, StudentCardProfile } from "@/src/components/StudentCard";
 
 export function SmeHome() {
@@ -13,6 +14,7 @@ export function SmeHome() {
   const [category, setCategory] = useState<string | null>(null);
   const [priceIdx, setPriceIdx] = useState(0);
   const [rateIdx, setRateIdx] = useState(0);
+  const [vettedOnly, setVettedOnly] = useState(false);
 
   const priceOpt = SPRICE_OPTS[priceIdx];
   const rateOpt = RATE_OPTS[rateIdx];
@@ -24,6 +26,7 @@ export function SmeHome() {
       minPrice: priceOpt.min,
       maxPrice: priceOpt.max,
       minRating: rateOpt.min,
+      vettedOnly: vettedOnly || undefined,
     },
   });
   const { data: savedData, refetch: refetchSaved } = useQuery(GET_SAVED_STUDENT_IDS);
@@ -46,13 +49,17 @@ export function SmeHome() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <h1 className="text-2xl font-extrabold text-ink">Find campus talent</h1>
+      <p className="mt-1 text-sm font-medium text-muted">
+        Campus-vetted students across 5 digital verticals — pay a flat 2%, nothing hidden.
+      </p>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search students by name or bio…"
-        className="mt-4 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-brand"
-      />
+      <div className="mt-5">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search students by name or bio…"
+        />
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Chip active={category === null} onClick={() => setCategory(null)}>
@@ -77,6 +84,16 @@ export function SmeHome() {
           className="rounded-full border border-border bg-white px-4 py-2 text-[13px] font-bold text-ink"
         >
           {rateOpt.label}
+        </button>
+        <button
+          onClick={() => setVettedOnly(!vettedOnly)}
+          className={`rounded-full border px-4 py-2 text-[13px] font-bold transition-colors ${
+            vettedOnly
+              ? "border-brand bg-brand-tint text-brand"
+              : "border-border bg-white text-ink hover:border-brand-light"
+          }`}
+        >
+          ✓ Campus-vetted only
         </button>
       </div>
 

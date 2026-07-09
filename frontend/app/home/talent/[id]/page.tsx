@@ -6,6 +6,9 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { GET_ME, GET_STUDENT } from "@/src/graphql/queries";
 import { REACH_OUT } from "@/src/graphql/mutations";
 import { Navbar } from "@/src/components/Navbar";
+import { VettedBadge } from "@/src/components/ui/Badge";
+import { Button } from "@/src/components/ui/Button";
+import { Card } from "@/src/components/ui/Card";
 import { formatRM, gradientFor, initials } from "@/src/lib/format";
 
 export default function ProfileDetailPage({
@@ -47,101 +50,115 @@ export default function ProfileDetailPage({
     );
   }
 
+  const availability =
+    student.availabilityStatus === "now" ? "Available now" : `From ${student.availableFrom}`;
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
-      <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-8 px-6 py-8 lg:grid-cols-[1fr_320px]">
-        <div>
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-full text-xl font-extrabold text-white"
-              style={{ background: gradientFor(student.user.username) }}
-            >
-              {initials(student.user.username)}
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-extrabold text-ink">{student.user.username}</span>
-                {student.isVetted && (
-                  <span className="rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-bold text-brand">
-                    Campus-vetted
+      <div className="mx-auto w-full max-w-5xl px-6 pt-6">
+        <Link href="/home" className="text-xs font-bold text-muted hover:text-ink">
+          ‹ Back to talent
+        </Link>
+      </div>
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-1 items-start gap-6 px-6 py-5 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-5">
+          {/* Header card */}
+          <Card className="p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-extrabold text-white"
+                  style={{ background: gradientFor(student.user.username) }}
+                >
+                  {initials(student.user.username)}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-extrabold text-ink">{student.user.username}</span>
+                    {student.isVetted && <VettedBadge />}
+                  </div>
+                  <span className="text-sm text-muted">
+                    {student.major} · {student.university}
                   </span>
-                )}
+                  <p className="mt-1 text-xs font-semibold text-muted">
+                    <span className="text-accent">★ {student.rating.toFixed(1)}</span> ({student.ratingCount}{" "}
+                    review{student.ratingCount === 1 ? "" : "s"})
+                  </p>
+                </div>
               </div>
-              <span className="text-sm text-muted">
-                {student.major} · {student.university}
+              <span
+                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${
+                  student.availabilityStatus === "now"
+                    ? "bg-success-tint text-success"
+                    : "bg-accent-tint text-accent-dark"
+                }`}
+              >
+                {availability}
               </span>
             </div>
-          </div>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {student.skills.slice(0, 3).map((s: string) => (
+                <span key={s} className="rounded-full bg-brand-tint px-3 py-1 text-xs font-bold text-brand">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </Card>
 
-          <p className="mt-5 whitespace-pre-line text-sm leading-relaxed text-ink">
-            {student.bio}
-          </p>
+          {/* About */}
+          <Card className="p-6">
+            <h3 className="text-sm font-extrabold text-ink">About</h3>
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted">{student.bio}</p>
+          </Card>
 
-          <div className="mt-6">
-            <h3 className="text-sm font-bold text-ink">All skills</h3>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+          {/* Skills */}
+          <Card className="p-6">
+            <h3 className="text-sm font-extrabold text-ink">Skills</h3>
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {student.skills.map((s: string) => (
                 <span key={s} className="rounded-full bg-bg px-3 py-1.5 text-xs font-semibold text-muted">
                   {s}
                 </span>
               ))}
             </div>
-          </div>
+          </Card>
 
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <QuickFact label="University" value={student.university} />
-            <QuickFact label="Graduating" value={String(student.graduationYear)} />
-            <QuickFact label="Languages" value={student.languages || "—"} />
-            <QuickFact
-              label="Availability"
-              value={student.availabilityStatus === "now" ? "Available now" : `From ${student.availableFrom}`}
-            />
-          </div>
-
+          {/* Reviews */}
           {student.reviews.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-sm font-bold text-ink">Reviews from businesses</h3>
-              <div className="mt-3 space-y-3">
-                {student.reviews.map((r: { id: string; rating: number; comment: string; reviewer: { username: string } }) => (
-                  <div key={r.id} className="rounded-xl border border-border bg-white p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-ink">{r.reviewer.username}</span>
-                      <span className="text-xs font-semibold text-accent">★ {r.rating}</span>
+            <Card className="p-6">
+              <h3 className="text-sm font-extrabold text-ink">What businesses say</h3>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {student.reviews.map(
+                  (r: { id: string; rating: number; comment: string; reviewer: { username: string } }) => (
+                    <div key={r.id} className="rounded-xl bg-bg p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-ink">{r.reviewer.username}</span>
+                        <span className="text-xs font-semibold text-accent">★ {r.rating.toFixed(1)}</span>
+                      </div>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted">“{r.comment}”</p>
                     </div>
-                    <p className="mt-1.5 text-sm text-muted">{r.comment}</p>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
-            </div>
+            </Card>
           )}
         </div>
 
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-border bg-white p-5 text-center">
-            <div className="text-xl font-extrabold text-ink">
+        {/* Sticky sidebar */}
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <Card className="p-5">
+            <div className="text-2xl font-extrabold text-ink">
               {formatRM(student.priceLow)}–{formatRM(student.priceHigh)}
             </div>
-            <span className="text-xs font-semibold text-muted">typical task price</span>
-            <div className="mt-2 text-xs font-semibold text-accent">
-              ★ {student.rating.toFixed(1)} ({student.ratingCount} ratings)
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-white p-5">
-            <h3 className="text-sm font-bold text-ink">Cost breakdown</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Whatever price you agree on in chat, the platform fee is a flat 2% —
-              charged to you, the business, on top. {student.user.username} keeps
-              100% of the agreed price. Funds are held in escrow until you approve
-              the work.
+            <span className="text-xs font-semibold text-muted">per task · typical range</span>
+            <p className="mt-3 rounded-xl bg-brand-tint px-3 py-2.5 text-xs font-medium leading-relaxed text-brand">
+              Payment is held in escrow and released when you approve the delivery. A flat 2% fee applies at
+              checkout.
             </p>
-          </div>
-
-          {role === "sme" && (
-            <div className="rounded-2xl border border-border bg-white p-5">
-              {sent ? (
-                <div className="text-sm">
+            {role === "sme" &&
+              (sent ? (
+                <div className="mt-4 text-sm">
                   <p className="font-bold text-ink">Message sent!</p>
                   <p className="mt-1 text-muted">
                     {student.user.username} will reply in your{" "}
@@ -152,30 +169,43 @@ export default function ProfileDetailPage({
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleReachOut} className="space-y-3">
-                  <label className="block text-sm font-bold text-ink">
-                    Message {student.user.username}
-                  </label>
+                <form onSubmit={handleReachOut} className="mt-4 space-y-3">
                   <textarea
                     required
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={3}
                     placeholder="Tell them about the task…"
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-brand"
+                    className="w-full rounded-xl border border-transparent bg-bg px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:bg-white"
                   />
                   {error && <p className="text-xs font-semibold text-red-600">{error.message}</p>}
-                  <button
-                    type="submit"
-                    disabled={sending}
-                    className="w-full rounded-full bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-                  >
-                    {sending ? "Sending…" : "Message student"}
-                  </button>
+                  <Button type="submit" disabled={sending} className="w-full">
+                    {sending ? "Sending…" : `💬 Message ${student.user.username}`}
+                  </Button>
                 </form>
-              )}
-            </div>
-          )}
+              ))}
+          </Card>
+
+          <Card className="p-5">
+            <h3 className="text-sm font-extrabold text-ink">Quick facts</h3>
+            <dl className="mt-3 space-y-2.5 text-sm">
+              <QuickFact label="University" value={student.university} />
+              <QuickFact label="Graduating" value={String(student.graduationYear)} />
+              <QuickFact label="Tasks completed" value={String(student.ratingCount)} />
+              <QuickFact label="Languages" value={student.languages || "—"} />
+              <QuickFact label="Availability" value={availability} />
+              <QuickFact
+                label="Campus-vetted"
+                value={
+                  student.isVetted
+                    ? student.vettedAt
+                      ? `Since ${new Date(student.vettedAt).toLocaleDateString("en-MY", { month: "short", year: "numeric" })}`
+                      : "Yes"
+                    : "Not yet"
+                }
+              />
+            </dl>
+          </Card>
         </aside>
       </div>
     </div>
@@ -184,9 +214,9 @@ export default function ProfileDetailPage({
 
 function QuickFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-bg p-3">
-      <div className="text-xs font-semibold text-muted">{label}</div>
-      <div className="mt-0.5 text-sm font-bold text-ink">{value}</div>
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-xs font-semibold text-muted">{label}</dt>
+      <dd className="text-right text-sm font-bold text-ink">{value}</dd>
     </div>
   );
 }

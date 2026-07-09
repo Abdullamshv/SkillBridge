@@ -106,7 +106,10 @@ TASKS = [
                    ("First 10 listings", "Review of titles and variants"),
                    ("All 20 + walkthrough", "Banner live, tutorial recorded")],
          rating=5.0, rating_count=2),
-    dict(sme="Kayu & Co.", industry="Furniture", loc="Kota Damansara", title="Product photo retouching — 30 shots",
+    # verified=False: left unverified (and without an SSM number) on purpose so the
+    # SSM-verification workflow and its blank-number guard can be demoed.
+    dict(sme="Kayu & Co.", industry="Furniture", loc="Kota Damansara", verified=False,
+         title="Product photo retouching — 30 shots",
          cat=Project.Category.GRAPHIC_DESIGN, price=420, days=6,
          about="Small-batch furniture studio crafting solid-wood pieces for apartments.",
          desc="Retouch 30 product photos: background cleanup to pure white, colour-true wood tones, light dust removal. Consistency across the whole set matters more than heavy editing.",
@@ -162,13 +165,15 @@ STUDENTS = [
          bio="Final-year software engineering student who designs interfaces developers can actually build. App screens, admin panels and design-system tidy-ups are my bread and butter.",
          reviews=[("Kevin Foo", "TechNest Solutions", 5.0, "Gave us a Figma prototype our devs built from directly — zero guesswork in handoff."),
                   ("Nadia Hassan", "Nadia's Kitchen", 4.9, "Redesigned our order flow so cleanly that repeat orders went up the same month.")]),
-    dict(name="Arif Danial", uni="IIUM Gombak", major="BA Communication", year=2, cat="Writing",
+    # vetted=False on the last two: kept unvetted on purpose so the vetting
+    # workflow and the vettedOnly marketplace filter can be demoed.
+    dict(name="Arif Danial", uni="IIUM Gombak", major="BA Communication", year=2, cat="Writing", vetted=False,
          skills=["Ad copywriting", "Email campaigns", "Video scripts", "Landing page copy", "BM↔EN adaptation"],
          rating=4.6, rating_count=9, lo=250, hi=500, avail="now", langs="BM · EN · العربية",
          bio="Copywriter focused on ads and email — short words that move numbers. I A/B test headlines by default and report what actually won.",
          reviews=[("Syed Amir", "Kopi Kita", 4.6, "His ad copy doubled our click-through in the first week of Raya promos."),
                   ("Lim Bee Kim", "Batik Craft Co.", 4.5, "Email series felt personal, not blasted. Open rates we had never seen before.")]),
-    dict(name="Kavitha Raj", uni="Multimedia University", major="BIT E-Commerce", year=3, cat="Web",
+    dict(name="Kavitha Raj", uni="Multimedia University", major="BIT E-Commerce", year=3, cat="Web", vetted=False,
          skills=["Shopify", "Shopee & Lazada ops", "HTML/CSS", "Product listings", "Store analytics", "Payment setup"],
          rating=4.8, rating_count=15, lo=600, hi=1100, avail="now", langs="EN · BM · தமிழ்",
          bio="E-commerce student who has launched 11 marketplace stores for family businesses — from empty account to first sale, including listings, shipping setup and a tutorial for the owner.",
@@ -227,7 +232,8 @@ class Command(BaseCommand):
             for t in TASKS:
                 if t["sme"] not in sme_by_name:
                     sme_by_name[t["sme"]] = self._make_sme(
-                        t["sme"], t["industry"], t["loc"], t["rating"], t["rating_count"]
+                        t["sme"], t["industry"], t["loc"], t["rating"], t["rating_count"],
+                        verified=t.get("verified", True),
                     )
 
             for t in TASKS:
@@ -328,7 +334,7 @@ class Command(BaseCommand):
             ]
             LedgerEntry.objects.filter(pk__in=created).update(created_at=when)
 
-    def _make_sme(self, name, industry, location, rating, rating_count):
+    def _make_sme(self, name, industry, location, rating, rating_count, verified=True):
         username = slugify(name)[:150]
         user, _ = User.objects.update_or_create(
             username=username,
@@ -342,8 +348,8 @@ class Command(BaseCommand):
                 company_name=name,
                 industry=industry,
                 location=location,
-                ssm_number=f"SSM-{abs(hash(name)) % 900000 + 100000}",
-                is_verified=True,
+                ssm_number=f"SSM-{abs(hash(name)) % 900000 + 100000}" if verified else "",
+                is_verified=verified,
                 rating=rating,
                 rating_count=rating_count,
             ),
@@ -399,8 +405,8 @@ class Command(BaseCommand):
                 available_from=s.get("avail_from"),
                 rating=s["rating"],
                 rating_count=s["rating_count"],
-                is_vetted=True,
-                vetted_at=timezone.now(),
+                is_vetted=s.get("vetted", True),
+                vetted_at=timezone.now() if s.get("vetted", True) else None,
             ),
         )
         return student

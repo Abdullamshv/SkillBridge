@@ -97,6 +97,7 @@ class Query:
         min_price: Optional[str] = None,
         max_price: Optional[str] = None,
         min_rating: Optional[float] = None,
+        vetted_only: Optional[bool] = None,
     ) -> List[StudentProfileType]:
         from users.models import StudentProfile
 
@@ -115,6 +116,8 @@ class Query:
             qs = qs.filter(price_low__lte=max_price)
         if min_rating:
             qs = qs.filter(rating__gte=min_rating)
+        if vetted_only:
+            qs = qs.filter(is_vetted=True)
         return [StudentProfileType.from_model(s) for s in qs.order_by("-rating")]
 
     @strawberry.field

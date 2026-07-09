@@ -65,7 +65,7 @@ export default function MyTasksPage() {
           <h1 className="text-2xl font-extrabold text-ink">My tasks</h1>
           <Link
             href="/my-tasks/new"
-            className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-light"
+            className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-accent-dark"
           >
             + Post a task
           </Link>
@@ -78,7 +78,7 @@ export default function MyTasksPage() {
         )}
 
         {projects.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-border bg-white p-10 text-center">
+          <div className="mt-10 rounded-2xl bg-white p-10 text-center shadow-card">
             <p className="text-sm font-semibold text-ink">You haven&apos;t posted any tasks yet.</p>
             <p className="mt-1 text-sm text-muted">
               Post your first task and campus talent will reach out to you.
@@ -94,7 +94,7 @@ export default function MyTasksPage() {
               return (
                 <div
                   key={p.id}
-                  className="rounded-2xl border border-border bg-white p-5 shadow-sm"
+                  className="rounded-2xl bg-white p-5 shadow-card transition-shadow hover:shadow-card-hover"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">

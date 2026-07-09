@@ -16,6 +16,7 @@ export type StudentsVars = {
   minPrice?: string;
   maxPrice?: string;
   minRating?: number;
+  vettedOnly?: boolean;
 };
 
 export type StudentVars = { id: string };
@@ -145,6 +146,7 @@ export type StudentDetail = StudentSummary & {
   bio: string;
   portfolioUrl: string;
   languages: string;
+  vettedAt: string | null;
   reviews: Review[];
 };
 

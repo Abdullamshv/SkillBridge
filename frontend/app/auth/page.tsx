@@ -6,7 +6,45 @@ import { useMutation } from "@apollo/client/react";
 import { LOGIN, REGISTER } from "@/src/graphql/mutations";
 import { GET_ME } from "@/src/graphql/queries";
 import { Navbar } from "@/src/components/Navbar";
+import { Button } from "@/src/components/ui/Button";
 import { friendlyError } from "@/src/lib/errors";
+
+const COPY = {
+  student: {
+    chip: "STUDENT ACCOUNT",
+    switchLabel: "I'm a business instead",
+    title: "Join as a student",
+    sub: "Start earning from real tasks — and keep 100% of every payout.",
+    emailLabel: "Campus email",
+    emailPlaceholder: "you@siswa.um.edu.my",
+    emailHint: "We verify campus emails — that's what keeps the talent pool vetted.",
+    submit: "Create student account",
+  },
+  sme: {
+    chip: "BUSINESS ACCOUNT",
+    switchLabel: "I'm a student instead",
+    title: "Join as a business",
+    sub: "Post tasks, hire campus-vetted talent, pay one flat 2% fee.",
+    emailLabel: "Work email",
+    emailPlaceholder: "you@company.my",
+    emailHint: "Add your SSM number after signup to get the verified badge.",
+    submit: "Create business account",
+  },
+} as const;
+
+function SocialButton({ label, icon }: { label: string; icon: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      disabled
+      title="Coming soon"
+      className="flex w-full items-center justify-center gap-2.5 rounded-full border border-border bg-white py-2.5 text-sm font-bold text-ink opacity-60"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 function AuthForm() {
   const router = useRouter();
@@ -30,6 +68,7 @@ function AuthForm() {
   });
 
   const loading = registering || loggingIn;
+  const copy = COPY[role];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,103 +85,136 @@ function AuthForm() {
     }
   }
 
+  const inputClass =
+    "w-full rounded-xl border border-transparent bg-bg px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:bg-white";
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-white p-8 shadow-sm">
-          <div className="mb-6 flex rounded-full bg-bg p-1">
-            <button
-              onClick={() => setMode("signup")}
-              className={`flex-1 rounded-full py-2 text-sm font-bold transition-colors ${
-                mode === "signup" ? "bg-white text-ink shadow-sm" : "text-muted"
-              }`}
-            >
-              Sign up
-            </button>
-            <button
-              onClick={() => setMode("signin")}
-              className={`flex-1 rounded-full py-2 text-sm font-bold transition-colors ${
-                mode === "signin" ? "bg-white text-ink shadow-sm" : "text-muted"
-              }`}
-            >
-              Sign in
-            </button>
-          </div>
-
-          {mode === "signup" && (
-            <div className="mb-6 flex rounded-full border border-border p-1">
-              <button
-                onClick={() => setRole("student")}
-                className={`flex-1 rounded-full py-2 text-sm font-bold transition-colors ${
-                  role === "student" ? "bg-brand text-white" : "text-muted"
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-card">
+          {mode === "signup" ? (
+            <div className="mb-5 flex items-center justify-between">
+              <span
+                className={`rounded-full px-3 py-1 text-[10.5px] font-extrabold tracking-wide ${
+                  role === "student" ? "bg-brand-tint text-brand" : "bg-accent-tint text-accent-dark"
                 }`}
               >
-                I&apos;m a Student
-              </button>
+                {copy.chip}
+              </span>
               <button
-                onClick={() => setRole("sme")}
-                className={`flex-1 rounded-full py-2 text-sm font-bold transition-colors ${
-                  role === "sme" ? "bg-brand text-white" : "text-muted"
-                }`}
+                onClick={() => setRole(role === "student" ? "sme" : "student")}
+                className="text-xs font-bold text-brand hover:text-brand-light"
               >
-                I&apos;m a Business
+                {copy.switchLabel}
               </button>
             </div>
-          )}
+          ) : null}
+
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+            {mode === "signup" ? copy.title : "Welcome back"}
+          </h1>
+          <p className="mt-1.5 text-sm text-muted">
+            {mode === "signup" ? copy.sub : "Sign in to pick up where you left off."}
+          </p>
+
+          <div className="mt-6 space-y-3">
+            <SocialButton
+              label="Continue with Google"
+              icon={
+                <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+                  <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.2-2.1 3.7-5.1 3.7-8.9z" />
+                  <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.1 0-5.8-2.1-6.7-5H1.4v3C3.4 21.4 7.4 24 12 24z" />
+                  <path fill="#FBBC05" d="M5.3 14.4c-.3-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4v-3H1.4C.5 8.3 0 10.1 0 12s.5 3.7 1.4 5.4l3.9-3z" />
+                  <path fill="#EA4335" d="M12 4.7c1.8 0 3 .7 3.7 1.4l3.3-3.2C16.9 1 14.2 0 12 0 7.4 0 3.4 2.6 1.4 6.6l3.9 3c.9-2.8 3.6-4.9 6.7-4.9z" />
+                </svg>
+              }
+            />
+            <SocialButton
+              label="Continue with Apple"
+              icon={
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
+                  <path d="M16.7 12.9c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 2.9-.4 7.3 1.2 9.7.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.2-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.6-3.9zM14.4 5.6c.7-.8 1.1-1.9 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z" />
+                </svg>
+              }
+            />
+          </div>
+
+          <div className="my-5 flex items-center gap-3 text-[10px] font-extrabold tracking-widest text-faint">
+            <span className="h-px flex-1 bg-border" />
+            OR
+            <span className="h-px flex-1 bg-border" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-bold text-muted">Username</label>
+              <label className="mb-1.5 block text-xs font-bold text-ink">Username</label>
               <input
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-brand"
+                className={inputClass}
                 placeholder="yourname"
               />
             </div>
             {mode === "signup" && (
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-muted">Email</label>
+                <label className="mb-1.5 block text-xs font-bold text-ink">{copy.emailLabel}</label>
                 <input
                   required
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-brand"
-                  placeholder="you@example.com"
+                  className={inputClass}
+                  placeholder={copy.emailPlaceholder}
                 />
+                <p className="mt-1.5 flex items-start gap-1 text-[11px] font-medium text-success">
+                  <span aria-hidden>✓</span> {copy.emailHint}
+                </p>
               </div>
             )}
             <div>
-              <label className="mb-1.5 block text-xs font-bold text-muted">Password</label>
+              <label className="mb-1.5 block text-xs font-bold text-ink">Password</label>
               <input
                 required
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-brand"
-                placeholder="••••••••"
+                className={inputClass}
+                placeholder="8+ characters"
               />
             </div>
 
             {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
 
-            {mode === "signup" && (
-              <p className="text-xs text-faint">
-                We&apos;ll send a verification link to your email after you sign up.
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-full bg-brand py-3 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-            >
-              {loading ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
-            </button>
+            <Button type="submit" disabled={loading} className="w-full py-3">
+              {loading ? "Please wait…" : mode === "signup" ? copy.submit : "Sign in"}
+            </Button>
           </form>
+
+          <p className="mt-4 text-center text-xs font-semibold text-muted">
+            {mode === "signup" ? (
+              <>
+                Already have an account?{" "}
+                <button onClick={() => setMode("signin")} className="font-bold text-brand hover:text-brand-light">
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                New to SkillBridge?{" "}
+                <button onClick={() => setMode("signup")} className="font-bold text-brand hover:text-brand-light">
+                  Create an account
+                </button>
+              </>
+            )}
+          </p>
+
+          {mode === "signup" && (
+            <p className="mt-3 text-center text-[10.5px] leading-relaxed text-faint">
+              By continuing you agree to SkillBridge&apos;s Terms and acknowledge the escrow payment policy.
+            </p>
+          )}
         </div>
       </main>
     </div>

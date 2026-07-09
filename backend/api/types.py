@@ -65,6 +65,7 @@ class StudentProfileType:
     rating: float
     rating_count: int
     is_vetted: bool
+    vetted_at: Optional[datetime.datetime]
     user: UserType
     reviews: List[ReviewType]
 
@@ -87,6 +88,7 @@ class StudentProfileType:
             rating=float(profile.rating),
             rating_count=profile.rating_count,
             is_vetted=profile.is_vetted,
+            vetted_at=profile.vetted_at,
             user=UserType.from_model(profile.user),
             reviews=[ReviewType.from_model(r) for r in profile.user.reviews_received.select_related("reviewer").all()],
         )

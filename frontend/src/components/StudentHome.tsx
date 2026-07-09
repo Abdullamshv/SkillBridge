@@ -6,6 +6,7 @@ import { GET_PROJECTS, GET_SAVED_TASK_IDS } from "@/src/graphql/queries";
 import { SAVE_TASK, UNSAVE_TASK } from "@/src/graphql/mutations";
 import { TASK_CATEGORIES, PRICE_OPTS, SORT_OPTS } from "@/src/lib/categories";
 import { Chip, PillButton } from "@/src/components/Chip";
+import { SearchBar } from "@/src/components/ui/SearchBar";
 import { TaskCard, TaskCardProject } from "@/src/components/TaskCard";
 
 export function StudentHome() {
@@ -45,13 +46,17 @@ export function StudentHome() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <h1 className="text-2xl font-extrabold text-ink">Find your next task</h1>
+      <p className="mt-1 text-sm font-medium text-muted">
+        Paid micro-tasks from Malaysian SMEs — every payout escrow-protected, every ringgit yours.
+      </p>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search tasks, skills, or businesses…"
-        className="mt-4 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-brand"
-      />
+      <div className="mt-5">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search tasks, skills, or businesses…"
+        />
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Chip active={category === null} onClick={() => setCategory(null)}>

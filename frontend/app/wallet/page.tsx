@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@apollo/client/react";
 import { GET_ME, GET_WALLET_STATS } from "@/src/graphql/queries";
 import { Navbar } from "@/src/components/Navbar";
+import { Card } from "@/src/components/ui/Card";
+import { StatCard } from "@/src/components/ui/StatCard";
 import { formatRM } from "@/src/lib/format";
 
 const CHART_MAX_PX = 158;
@@ -76,7 +78,7 @@ export default function WalletPage() {
 
         <div
           className={`mt-4 rounded-2xl px-5 py-4 text-sm font-bold ${
-            isStudent ? "bg-[#E3F4EC] text-[#1F9D6B]" : "bg-brand-tint text-brand"
+            isStudent ? "bg-success-tint text-success" : "bg-brand-tint text-brand"
           }`}
         >
           {isStudent
@@ -86,15 +88,11 @@ export default function WalletPage() {
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {cards.map((c) => (
-            <div key={c.label} className="rounded-2xl border border-border bg-white p-5">
-              <div className="text-2xl font-extrabold text-ink">{c.big}</div>
-              <div className="mt-1 text-sm font-semibold text-muted">{c.label}</div>
-              <div className="mt-2.5 text-xs font-bold text-faint">{c.sub}</div>
-            </div>
+            <StatCard key={c.label} big={c.big} label={c.label} sub={c.sub} />
           ))}
         </div>
 
-        <div className="mt-6 rounded-2xl border border-border bg-white p-6">
+        <Card className="mt-6 p-6">
           <h2 className="text-base font-extrabold text-ink">
             {isStudent ? "Earnings by month" : "Spend by month"}
           </h2>
@@ -133,7 +131,7 @@ export default function WalletPage() {
               );
             })}
           </figure>
-        </div>
+        </Card>
       </div>
     </div>
   );

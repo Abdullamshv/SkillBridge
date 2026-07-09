@@ -146,6 +146,7 @@ export const GET_STUDENTS: TypedDocumentNode<StudentsData, StudentsVars> = gql`
     $minPrice: String
     $maxPrice: String
     $minRating: Float
+    $vettedOnly: Boolean
   ) {
     students(
       search: $search
@@ -153,6 +154,7 @@ export const GET_STUDENTS: TypedDocumentNode<StudentsData, StudentsVars> = gql`
       minPrice: $minPrice
       maxPrice: $maxPrice
       minRating: $minRating
+      vettedOnly: $vettedOnly
     ) {
       id
       university
@@ -194,6 +196,7 @@ export const GET_STUDENT: TypedDocumentNode<StudentData, StudentVars> = gql`
       rating
       ratingCount
       isVetted
+      vettedAt
       user {
         id
         username

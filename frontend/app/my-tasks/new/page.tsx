@@ -12,7 +12,7 @@ import { formatRM } from "@/src/lib/format";
 import { friendlyError } from "@/src/lib/errors";
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-brand";
+  "w-full rounded-xl border border-transparent bg-bg px-4 py-3 text-sm outline-none transition-colors focus:border-brand focus:bg-white";
 
 function ListEditor({
   label,
@@ -173,7 +173,7 @@ export default function NewTaskPage() {
           only.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5 rounded-3xl bg-white p-6 shadow-card sm:p-8">
           <div>
             <label className="text-sm font-bold text-ink">Title</label>
             <input
@@ -282,7 +282,7 @@ export default function NewTaskPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-full bg-brand px-5 py-3 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-50"
+            className="w-full rounded-full bg-accent px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-accent-dark disabled:opacity-50"
           >
             {submitting ? "Posting…" : "Post task"}
           </button>

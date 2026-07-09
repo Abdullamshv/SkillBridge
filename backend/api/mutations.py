@@ -43,8 +43,9 @@ class IsAdmin(strawberry.BasePermission):
     message = "Admin role required"
 
     def has_permission(self, source: Any, info: strawberry.types.Info, **kwargs: Any) -> bool:
+        # is_superuser covers `createsuperuser` accounts, which get role="".
         u = info.context.request.user
-        return u.is_authenticated and u.role == "admin"
+        return u.is_authenticated and (u.role == "admin" or u.is_superuser)
 
 
 class IsSMEOrAdmin(strawberry.BasePermission):
@@ -52,7 +53,7 @@ class IsSMEOrAdmin(strawberry.BasePermission):
 
     def has_permission(self, source: Any, info: strawberry.types.Info, **kwargs: Any) -> bool:
         u = info.context.request.user
-        return u.is_authenticated and u.role in ("sme", "admin")
+        return u.is_authenticated and (u.role in ("sme", "admin") or u.is_superuser)
 
 
 @strawberry.type
@@ -432,3 +433,33 @@ class Mutation:
         ).get(pk=engagement_id)
         tx = approve_completion(engagement, info.context.request.user)
         return TransactionType.from_model(tx)
+
+    # ── Admin (vetting & verification) ─────────────────────────────────────
+
+    @strawberry.mutation(permission_classes=[IsAdmin])
+    def vet_student(
+        self,
+        info: strawberry.types.Info,
+        student_id: strawberry.ID,
+        vetted: bool = True,
+    ) -> StudentProfileType:
+        from users.models import StudentProfile
+        from users.services import vet_student as vet_student_service
+
+        profile = StudentProfile.objects.select_related("user").get(pk=student_id)
+        profile = vet_student_service(profile, info.context.request.user, vetted)
+        return StudentProfileType.from_model(profile)
+
+    @strawberry.mutation(permission_classes=[IsAdmin])
+    def verify_sme(
+        self,
+        info: strawberry.types.Info,
+        sme_id: strawberry.ID,
+        verified: bool = True,
+    ) -> SMEProfileType:
+        from users.models import SMEProfile
+        from users.services import verify_sme as verify_sme_service
+
+        profile = SMEProfile.objects.select_related("user").get(pk=sme_id)
+        profile = verify_sme_service(profile, info.context.request.user, verified)
+        return SMEProfileType.from_model(profile)

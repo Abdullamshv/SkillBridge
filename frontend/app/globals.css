@@ -3,7 +3,7 @@
 @theme inline {
   --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --color-bg: #f6f5fa;
+  --color-bg: #f7f9fc;
   --color-ink: #17151f;
   --color-muted: #6b7280;
   --color-faint: #a5a2b8;
@@ -14,10 +14,18 @@
   --color-brand-tint: #eceafc;
   --color-accent: #f0914a;
   --color-accent-dark: #e07f35;
+  --color-accent-tint: #fdeede;
+
+  --color-success: #1f9d6b;
+  --color-success-tint: #e6f6ef;
 
   --color-status-agreed: #4e3fe3;
   --color-status-progress: #c96a12;
   --color-status-delivered: #1f9d6b;
+
+  /* Soft, diffuse card shadows — the design uses these instead of hard borders. */
+  --shadow-card: 0 4px 20px rgba(78, 63, 227, 0.07);
+  --shadow-card-hover: 0 12px 32px rgba(78, 63, 227, 0.14);
 }
 
 html,

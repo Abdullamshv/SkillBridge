@@ -12,27 +12,14 @@ import {
 } from "@/src/graphql/mutations";
 import type { Engagement } from "@/src/graphql/types";
 import { Navbar } from "@/src/components/Navbar";
+import { Button } from "@/src/components/ui/Button";
+import { ProgressTracker, STATUS_PILL, statusLabel } from "@/src/components/ui/ProgressTracker";
 import { friendlyError } from "@/src/lib/errors";
 import { formatRM, gradientFor, initials } from "@/src/lib/format";
 
 const BACKEND = (
   process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:8000/graphql/"
 ).replace(/\/graphql\/?$/, "");
-
-const STEPS = ["Reached out", "Agreed", "In progress", "Delivered", "Completed"];
-const STATUS_ORDER = ["reached_out", "agreed", "in_progress", "delivered", "completed"];
-
-const STATUS_PILL: Record<string, { background: string; color: string }> = {
-  reached_out: { background: "#EEEDF5", color: "#6B7280" },
-  agreed: { background: "#ECEAFC", color: "#4E3FE3" },
-  in_progress: { background: "#FDEFE3", color: "#C96A12" },
-  delivered: { background: "#E3F4EC", color: "#1F9D6B" },
-  completed: { background: "#4E3FE3", color: "#FFFFFF" },
-};
-
-function statusLabel(status: string): string {
-  return STEPS[STATUS_ORDER.indexOf(status)] ?? status;
-}
 
 function fmtBytes(bytes: number): string {
   if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
@@ -104,8 +91,11 @@ export default function OfficePage() {
       <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-6 py-8 lg:grid-cols-[340px_1fr]">
         <aside>
           <h1 className="text-2xl font-extrabold text-ink">Office</h1>
+          <p className="mt-1 text-xs font-medium text-muted">
+            Every conversation, file and task status in one place.
+          </p>
 
-          <div className="mt-4 flex rounded-xl bg-white p-1 shadow-sm">
+          <div className="mt-4 flex rounded-xl bg-white p-1 shadow-card">
             <button
               onClick={() => setTab("progress")}
               className={`flex-1 rounded-lg py-2.5 text-[13px] font-bold transition-colors ${
@@ -143,8 +133,10 @@ export default function OfficePage() {
                   <button
                     key={e.id}
                     onClick={() => setSelectedId(e.id)}
-                    className={`flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition-colors ${
-                      active ? "border-brand bg-white shadow-sm" : "border-border bg-white/60 hover:bg-white"
+                    className={`flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-all ${
+                      active
+                        ? "bg-white shadow-card ring-1 ring-brand/40"
+                        : "bg-white/60 hover:bg-white hover:shadow-card"
                     }`}
                   >
                     <div
@@ -189,7 +181,7 @@ export default function OfficePage() {
             onChanged={() => refetch()}
           />
         ) : (
-          <div className="flex items-center justify-center rounded-2xl border border-border bg-white p-10 text-sm text-muted">
+          <div className="flex items-center justify-center rounded-2xl bg-white p-10 text-sm text-muted shadow-card">
             Select a thread to open the conversation.
           </div>
         )}
@@ -223,7 +215,6 @@ function ChatPane({
   const [advanceStatus, { loading: advancing }] = useMutation(ADVANCE_ENGAGEMENT_STATUS);
   const [fundEscrow, { loading: funding }] = useMutation(FUND_ESCROW);
 
-  const stepIndex = STATUS_ORDER.indexOf(engagement.status);
   const other = meRole === "sme" ? engagement.student.user.username : engagement.sme.companyName;
   const busy = advancing || funding;
 
@@ -240,10 +231,7 @@ function ChatPane({
     onChanged();
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
+  async function uploadFile(file: File) {
     const body = new FormData();
     body.append("file", file);
     const res = await fetch(`${BACKEND}/api/upload/${engagement.id}/`, {
@@ -258,6 +246,13 @@ function ChatPane({
     }
     setActionError(null);
     onChanged();
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    await uploadFile(file);
   }
 
   async function doAdvance(status: string, agreedPrice?: string) {
@@ -295,59 +290,39 @@ function ChatPane({
           className="w-32 rounded-full border border-border px-4 py-2 text-sm outline-none focus:border-brand"
           placeholder="Price (RM)"
         />
-        <button
-          disabled={busy || !priceDraft}
-          onClick={() => doAdvance("agreed", priceDraft)}
-          className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-        >
+        <Button disabled={busy || !priceDraft} onClick={() => doAdvance("agreed", priceDraft)}>
           Agree terms at RM {priceDraft || "…"}
-        </button>
+        </Button>
       </div>
     );
   } else if (meRole === "sme" && engagement.status !== "completed" && !tx) {
     action = (
-      <button
-        disabled={busy}
-        onClick={doFund}
-        className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-      >
+      <Button disabled={busy} onClick={doFund}>
         Fund escrow — {price ? formatRM(price) : ""} + 2% fee
-      </button>
+      </Button>
     );
   } else if (meRole === "student" && engagement.status === "agreed") {
     action = (
-      <button
-        disabled={busy}
-        onClick={() => doAdvance("in_progress")}
-        className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-      >
+      <Button disabled={busy} onClick={() => doAdvance("in_progress")}>
         Start work
-      </button>
+      </Button>
     );
   } else if (meRole === "student" && engagement.status === "in_progress") {
     action = (
-      <button
-        disabled={busy}
-        onClick={() => doAdvance("delivered")}
-        className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-      >
+      <Button disabled={busy} onClick={() => doAdvance("delivered")}>
         Mark delivered
-      </button>
+      </Button>
     );
   } else if (meRole === "sme" && engagement.status === "delivered" && escrowHeld) {
     action = (
-      <button
-        disabled={busy}
-        onClick={() => doAdvance("completed")}
-        className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-      >
+      <Button disabled={busy} onClick={() => doAdvance("completed")}>
         Approve &amp; release {tx ? formatRM(tx.amount) : ""}
-      </button>
+      </Button>
     );
   }
 
   return (
-    <section className="flex min-h-[70vh] flex-col rounded-2xl border border-border bg-white">
+    <section className="flex min-h-[70vh] flex-col rounded-2xl bg-white shadow-card">
       <header className="border-b border-border p-5">
         <div className="flex items-center gap-3">
           <div
@@ -371,30 +346,9 @@ function ChatPane({
           </div>
         </div>
 
-        <ol className="mt-4 flex items-center gap-0">
-          {STEPS.map((label, i) => {
-            const done = i <= stepIndex;
-            return (
-              <li key={label} className="flex flex-1 items-center">
-                <div className="flex flex-col items-center gap-1" style={{ minWidth: 0 }}>
-                  <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-extrabold ${
-                      done ? "bg-brand text-white" : "bg-bg text-faint"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
-                  <span className={`whitespace-nowrap text-[10.5px] font-bold ${done ? "text-brand" : "text-faint"}`}>
-                    {label}
-                  </span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div className={`mx-1.5 mb-4 h-0.5 flex-1 rounded ${i < stepIndex ? "bg-brand" : "bg-border"}`} />
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <div className="mt-4">
+          <ProgressTracker status={engagement.status} />
+        </div>
       </header>
 
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-5">
@@ -439,6 +393,19 @@ function ChatPane({
           <ReviewForm engagementId={engagement.id} otherName={other} onDone={onChanged} />
         )}
 
+        <div
+          onClick={() => fileRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files?.[0];
+            if (file) uploadFile(file);
+          }}
+          className="mb-3 cursor-pointer rounded-xl border-2 border-dashed border-border py-2.5 text-center text-xs font-semibold text-faint transition-colors hover:border-brand-light hover:text-muted"
+        >
+          ⬆ Drop drafts or deliverables here — up to 50 MB in dev
+        </div>
+
         <form onSubmit={handleSend} className="flex items-center gap-2">
           <button
             type="button"
@@ -455,13 +422,9 @@ function ChatPane({
             placeholder={`Message ${other}…`}
             className="min-w-0 flex-1 rounded-full border border-border px-4 py-2.5 text-sm outline-none focus:border-brand"
           />
-          <button
-            type="submit"
-            disabled={sending || !draft.trim()}
-            className="rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-          >
+          <Button type="submit" disabled={sending || !draft.trim()}>
             Send
-          </button>
+          </Button>
         </form>
       </footer>
     </section>
@@ -517,13 +480,9 @@ function ReviewForm({
         className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand"
       />
       {error && <p className="mt-1 text-xs font-semibold text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={loading}
-        className="mt-2 rounded-full bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-light disabled:opacity-60"
-      >
+      <Button type="submit" disabled={loading} className="mt-2">
         Submit review
-      </button>
+      </Button>
     </form>
   );
 }
