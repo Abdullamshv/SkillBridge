@@ -1,6 +1,22 @@
-import { gql } from "@apollo/client";
+import { gql, type TypedDocumentNode } from "@apollo/client";
+import type {
+  LoginData,
+  LoginVars,
+  LogoutData,
+  NoVars,
+  ReachOutData,
+  ReachOutVars,
+  RegisterData,
+  RegisterVars,
+  SaveStudentData,
+  SaveStudentVars,
+  SaveTaskData,
+  SaveTaskVars,
+  UnsaveStudentData,
+  UnsaveTaskData,
+} from "./types";
 
-export const REGISTER = gql`
+export const REGISTER: TypedDocumentNode<RegisterData, RegisterVars> = gql`
   mutation Register(
     $username: String!
     $email: String!
@@ -22,7 +38,7 @@ export const REGISTER = gql`
   }
 `;
 
-export const LOGIN = gql`
+export const LOGIN: TypedDocumentNode<LoginData, LoginVars> = gql`
   mutation Login($username: String!, $password: String!) {
     login(username: $username, password: $password) {
       id
@@ -34,113 +50,41 @@ export const LOGIN = gql`
   }
 `;
 
-export const LOGOUT = gql`
+export const LOGOUT: TypedDocumentNode<LogoutData, NoVars> = gql`
   mutation Logout {
     logout
   }
 `;
 
-export const CREATE_PROJECT = gql`
-  mutation CreateProject(
-    $title: String!
-    $description: String!
-    $category: String!
-    $budget: String!
-    $deadline: Date!
-  ) {
-    createProject(
-      title: $title
-      description: $description
-      category: $category
-      budget: $budget
-      deadline: $deadline
-    ) {
-      id
-      title
-      status
-      budget
-      deadline
-    }
+export const SAVE_TASK: TypedDocumentNode<SaveTaskData, SaveTaskVars> = gql`
+  mutation SaveTask($projectId: ID!) {
+    saveTask(projectId: $projectId)
   }
 `;
 
-export const SUBMIT_PROPOSAL = gql`
-  mutation SubmitProposal(
-    $projectId: ID!
-    $coverLetter: String!
-    $proposedBudget: String!
-    $proposedDays: Int!
-  ) {
-    submitProposal(
-      projectId: $projectId
-      coverLetter: $coverLetter
-      proposedBudget: $proposedBudget
-      proposedDays: $proposedDays
-    ) {
+export const UNSAVE_TASK: TypedDocumentNode<UnsaveTaskData, SaveTaskVars> = gql`
+  mutation UnsaveTask($projectId: ID!) {
+    unsaveTask(projectId: $projectId)
+  }
+`;
+
+export const SAVE_STUDENT: TypedDocumentNode<SaveStudentData, SaveStudentVars> = gql`
+  mutation SaveStudent($studentId: ID!) {
+    saveStudent(studentId: $studentId)
+  }
+`;
+
+export const UNSAVE_STUDENT: TypedDocumentNode<UnsaveStudentData, SaveStudentVars> = gql`
+  mutation UnsaveStudent($studentId: ID!) {
+    unsaveStudent(studentId: $studentId)
+  }
+`;
+
+export const REACH_OUT: TypedDocumentNode<ReachOutData, ReachOutVars> = gql`
+  mutation ReachOut($message: String!, $projectId: ID, $studentId: ID) {
+    reachOut(message: $message, projectId: $projectId, studentId: $studentId) {
       id
       status
-      proposedBudget
-      proposedDays
-    }
-  }
-`;
-
-export const ACCEPT_PROPOSAL = gql`
-  mutation AcceptProposal($proposalId: ID!) {
-    acceptProposal(proposalId: $proposalId) {
-      id
-      status
-      project {
-        id
-        status
-      }
-    }
-  }
-`;
-
-export const UPDATE_STUDENT_PROFILE = gql`
-  mutation UpdateStudentProfile(
-    $university: String
-    $major: String
-    $graduationYear: Int
-    $skills: [String!]
-    $bio: String
-    $portfolioUrl: String
-  ) {
-    updateStudentProfile(
-      university: $university
-      major: $major
-      graduationYear: $graduationYear
-      skills: $skills
-      bio: $bio
-      portfolioUrl: $portfolioUrl
-    ) {
-      id
-      university
-      major
-      skills
-      rating
-    }
-  }
-`;
-
-export const UPDATE_SME_PROFILE = gql`
-  mutation UpdateSmeProfile(
-    $companyName: String
-    $industry: String
-    $website: String
-    $description: String
-  ) {
-    updateSmeProfile(
-      companyName: $companyName
-      industry: $industry
-      website: $website
-      description: $description
-    ) {
-      id
-      companyName
-      industry
-      website
     }
   }
 `;

@@ -1,85 +1,91 @@
 import Link from "next/link";
+import { Navbar } from "@/src/components/Navbar";
 
-export default function Home() {
+const STATS = [
+  { big: "100%", label: "of the task price goes to the student" },
+  { big: "2%", label: "flat fee, charged to the business only" },
+  { big: "5", label: "verticals: design, writing, social, web, data" },
+];
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Nav */}
-      <header className="border-b border-zinc-100 px-6 py-4 flex items-center justify-between">
-        <span className="font-semibold text-lg tracking-tight">SkillBridge</span>
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/projects" className="text-zinc-600 hover:text-zinc-900">
-            Browse Projects
-          </Link>
-          <Link
-            href="/auth/login"
-            className="text-zinc-600 hover:text-zinc-900"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/auth/register"
-            className="rounded-full bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700"
-          >
-            Sign up
-          </Link>
-        </nav>
-      </header>
+    <div className="flex min-h-screen flex-col">
+      <Navbar />
 
-      {/* Hero */}
-      <main className="flex flex-col items-center justify-center flex-1 px-6 py-24 text-center">
-        <span className="mb-4 inline-block rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
+      <main className="flex flex-1 flex-col items-center px-6 py-20 text-center">
+        <span className="mb-5 inline-block rounded-full bg-brand-tint px-3.5 py-1.5 text-xs font-bold text-brand">
           Klang Valley MVP
         </span>
-        <h1 className="max-w-2xl text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
-          Real projects. Real experience.{" "}
-          <span className="text-indigo-600">Right on campus.</span>
+        <h1 className="max-w-2xl text-4xl font-extrabold leading-tight tracking-tight text-ink sm:text-5xl">
+          Real work. Real pay.{" "}
+          <span className="text-brand">Right on campus.</span>
         </h1>
-        <p className="mt-6 max-w-xl text-lg text-zinc-500">
-          SkillBridge connects university students with local Malaysian SMEs for
-          paid digital projects — design, copywriting, development, and more.
+        <p className="mt-6 max-w-xl text-lg text-muted">
+          SkillBridge connects Malaysian university students with local SMEs that
+          need affordable digital work — design, writing, social media, web
+          development and data.
         </p>
-        <div className="mt-10 flex gap-4">
+        <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Link
-            href="/auth/register?role=student"
-            className="rounded-full bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-500"
+            href="/auth?mode=signup&role=student"
+            className="rounded-full bg-brand px-7 py-3.5 text-sm font-bold text-white hover:bg-brand-light"
           >
             I&apos;m a Student
           </Link>
           <Link
-            href="/auth/register?role=sme"
-            className="rounded-full border border-zinc-200 px-6 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            href="/auth?mode=signup&role=sme"
+            className="rounded-full border border-border bg-white px-7 py-3.5 text-sm font-bold text-ink hover:bg-brand-tint"
           >
             I&apos;m a Business
           </Link>
         </div>
-      </main>
 
-      {/* Feature strip */}
-      <section className="border-t border-zinc-100 bg-zinc-50 px-6 py-16">
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 sm:grid-cols-3 text-center">
-          {[
-            {
-              title: "Post a Project",
-              body: "SMEs describe the task, set a budget, and pick the best student proposal.",
-            },
-            {
-              title: "Get Matched",
-              body: "Students browse real briefs, submit proposals, and build their portfolios.",
-            },
-            {
-              title: "Safe Payments",
-              body: "Funds are held in escrow and released only when the work is approved.",
-            },
-          ].map((f) => (
-            <div key={f.title}>
-              <h3 className="font-semibold text-zinc-900">{f.title}</h3>
-              <p className="mt-2 text-sm text-zinc-500">{f.body}</p>
+        <div className="mt-16 grid w-full max-w-3xl grid-cols-1 gap-8 sm:grid-cols-3">
+          {STATS.map((s) => (
+            <div key={s.label}>
+              <div className="text-4xl font-extrabold text-brand">{s.big}</div>
+              <p className="mt-2 text-sm font-medium text-muted">{s.label}</p>
             </div>
           ))}
         </div>
+      </main>
+
+      <section className="border-t border-border bg-white px-6 py-16">
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border p-6">
+            <h3 className="text-lg font-extrabold text-ink">For students</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Browse real, fixed-price briefs from local businesses. Keep 100% of
+              what you earn — no platform cut on your side, ever. Get campus-vetted
+              and build a portfolio that outlasts your degree.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border p-6">
+            <h3 className="text-lg font-extrabold text-ink">For businesses</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Post a task, message vetted student talent directly, and pay a flat
+              2% fee — nothing hidden. Funds sit in escrow until you approve the
+              work.
+            </p>
+          </div>
+        </div>
       </section>
 
-      <footer className="border-t border-zinc-100 px-6 py-6 text-center text-xs text-zinc-400">
+      <section className="border-t border-border bg-brand px-6 py-16 text-center">
+        <h2 className="text-2xl font-extrabold text-white">
+          Ready to get started?
+        </h2>
+        <div className="mt-6 flex flex-wrap justify-center gap-4">
+          <Link
+            href="/auth?mode=signup"
+            className="rounded-full bg-white px-7 py-3.5 text-sm font-bold text-brand hover:bg-brand-tint"
+          >
+            Create your account
+          </Link>
+        </div>
+      </section>
+
+      <footer className="border-t border-border px-6 py-6 text-center text-xs text-faint">
         © {new Date().getFullYear()} SkillBridge. Klang Valley, Malaysia.
       </footer>
     </div>

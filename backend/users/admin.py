@@ -16,9 +16,15 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
-    list_display  = ("user", "university", "major", "graduation_year", "rating", "rating_count")
-    list_filter   = ("university",)
+    list_display  = ("user", "university", "major", "graduation_year", "is_vetted", "rating", "rating_count")
+    list_filter   = ("university", "is_vetted", "primary_category")
     search_fields = ("user__username", "university", "major")
+    actions       = ["mark_vetted"]
+
+    @admin.action(description="Mark selected students as campus-vetted")
+    def mark_vetted(self, request, queryset):
+        from django.utils import timezone
+        queryset.update(is_vetted=True, vetted_at=timezone.now(), vetted_by=request.user)
 
 
 @admin.register(SMEProfile)
