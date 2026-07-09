@@ -2,6 +2,7 @@ import { gql, type TypedDocumentNode } from "@apollo/client";
 import type {
   EngagementsData,
   MeData,
+  MyProjectsData,
   NoVars,
   ProjectData,
   ProjectsData,
@@ -104,6 +105,28 @@ export const GET_PROJECT: TypedDocumentNode<ProjectData, ProjectVars> = gql`
         user {
           username
           avatar
+        }
+      }
+    }
+  }
+`;
+
+export const GET_MY_PROJECTS: TypedDocumentNode<MyProjectsData, NoVars> = gql`
+  query GetMyProjects {
+    myProjects {
+      id
+      title
+      category
+      budget
+      platformFee
+      businessTotal
+      deadline
+      status
+      createdAt
+      assignedStudent {
+        id
+        user {
+          username
         }
       }
     }

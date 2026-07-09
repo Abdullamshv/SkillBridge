@@ -81,6 +81,36 @@ export type ProjectDetail = {
 
 export type ProjectData = { project: ProjectDetail | null };
 
+export type MyProject = {
+  id: string;
+  title: string;
+  category: string;
+  budget: string;
+  platformFee: string;
+  businessTotal: string;
+  deadline: string;
+  status: string;
+  createdAt: string;
+  assignedStudent: { id: string; user: { username: string } } | null;
+};
+
+export type MyProjectsData = { myProjects: MyProject[] };
+
+export type CreateProjectData = { createProject: { id: string } };
+export type CreateProjectVars = {
+  title: string;
+  description: string;
+  category: string;
+  budget: string;
+  deadline: string;
+  descriptionExtra?: string;
+  requiredSkills?: string[];
+  lookingForBullets?: string[];
+};
+
+export type UpdateProjectStatusData = { updateProjectStatus: { id: string; status: string } };
+export type UpdateProjectStatusVars = { projectId: string; status: string };
+
 export type SavedTaskIdsData = { savedTaskIds: string[] };
 export type SavedStudentIdsData = { savedStudentIds: string[] };
 

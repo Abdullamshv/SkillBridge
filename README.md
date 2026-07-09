@@ -44,18 +44,20 @@ an in-progress Office thread with attachments and six months of wallet history.
 reached_out → agreed → in_progress → delivered → completed
 ```
 
-1. Either side reaches out from a task or a student profile — that opens an
+1. A business posts a task from **My tasks** — open tasks appear in the student
+   marketplace; a task can be cancelled and reopened from the same page.
+2. Either side reaches out from a task or a student profile — that opens an
    Office thread.
-2. The business agrees terms (sets the price) and **funds escrow** — currently
+3. The business agrees terms (sets the price) and **funds escrow** — currently
    simulated test-mode funding (`payment_reference="TEST-MODE"`); this is the
    integration seam for a licensed Malaysian gateway (Billplz / ToyyibPay /
    CHIP).
-3. The student starts, works, and marks the task delivered.
-4. The business **approves** — approval and escrow release are one atomic
+4. The student starts, works, and marks the task delivered.
+5. The business **approves** — approval and escrow release are one atomic
    operation (`payments/services.approve_completion`): the transaction flips to
    RELEASED and the student's earning is written to the ledger. Completion is
    impossible while escrow is unfunded, and release can only happen once.
-5. After completion both sides can leave a review; profile ratings are
+6. After completion both sides can leave a review; profile ratings are
    recomputed from reviews.
 
 All transitions are enforced server-side (`engagements/services.advance_status`);

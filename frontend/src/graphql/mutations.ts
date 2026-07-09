@@ -2,6 +2,8 @@ import { gql, type TypedDocumentNode } from "@apollo/client";
 import type {
   AdvanceStatusData,
   AdvanceStatusVars,
+  CreateProjectData,
+  CreateProjectVars,
   FundEscrowData,
   FundEscrowVars,
   LoginData,
@@ -22,6 +24,8 @@ import type {
   SubmitReviewVars,
   UnsaveStudentData,
   UnsaveTaskData,
+  UpdateProjectStatusData,
+  UpdateProjectStatusVars,
 } from "./types";
 
 export const REGISTER: TypedDocumentNode<RegisterData, RegisterVars> = gql`
@@ -61,6 +65,41 @@ export const LOGIN: TypedDocumentNode<LoginData, LoginVars> = gql`
 export const LOGOUT: TypedDocumentNode<LogoutData, NoVars> = gql`
   mutation Logout {
     logout
+  }
+`;
+
+export const CREATE_PROJECT: TypedDocumentNode<CreateProjectData, CreateProjectVars> = gql`
+  mutation CreateProject(
+    $title: String!
+    $description: String!
+    $category: String!
+    $budget: String!
+    $deadline: Date!
+    $descriptionExtra: String
+    $requiredSkills: [String!]
+    $lookingForBullets: [String!]
+  ) {
+    createProject(
+      title: $title
+      description: $description
+      category: $category
+      budget: $budget
+      deadline: $deadline
+      descriptionExtra: $descriptionExtra
+      requiredSkills: $requiredSkills
+      lookingForBullets: $lookingForBullets
+    ) {
+      id
+    }
+  }
+`;
+
+export const UPDATE_PROJECT_STATUS: TypedDocumentNode<UpdateProjectStatusData, UpdateProjectStatusVars> = gql`
+  mutation UpdateProjectStatus($projectId: ID!, $status: String!) {
+    updateProjectStatus(projectId: $projectId, status: $status) {
+      id
+      status
+    }
   }
 `;
 

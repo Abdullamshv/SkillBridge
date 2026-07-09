@@ -47,6 +47,7 @@ export function Navbar() {
         {user && (
           <nav className="flex flex-1 items-center gap-1.5">
             {navLink("/home", "Home")}
+            {user.role === "sme" && navLink("/my-tasks", "My tasks")}
             {navLink("/office", "Office")}
             {navLink("/wallet", "Wallet")}
           </nav>
