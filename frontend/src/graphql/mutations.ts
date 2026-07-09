@@ -1,5 +1,11 @@
 import { gql, type TypedDocumentNode } from "@apollo/client";
 import type {
+  AdvanceStatusData,
+  AdvanceStatusVars,
+  CreateProjectData,
+  CreateProjectVars,
+  FundEscrowData,
+  FundEscrowVars,
   LoginData,
   LoginVars,
   LogoutData,
@@ -12,8 +18,14 @@ import type {
   SaveStudentVars,
   SaveTaskData,
   SaveTaskVars,
+  SendMessageData,
+  SendMessageVars,
+  SubmitReviewData,
+  SubmitReviewVars,
   UnsaveStudentData,
   UnsaveTaskData,
+  UpdateProjectStatusData,
+  UpdateProjectStatusVars,
 } from "./types";
 
 export const REGISTER: TypedDocumentNode<RegisterData, RegisterVars> = gql`
@@ -56,6 +68,41 @@ export const LOGOUT: TypedDocumentNode<LogoutData, NoVars> = gql`
   }
 `;
 
+export const CREATE_PROJECT: TypedDocumentNode<CreateProjectData, CreateProjectVars> = gql`
+  mutation CreateProject(
+    $title: String!
+    $description: String!
+    $category: String!
+    $budget: String!
+    $deadline: Date!
+    $descriptionExtra: String
+    $requiredSkills: [String!]
+    $lookingForBullets: [String!]
+  ) {
+    createProject(
+      title: $title
+      description: $description
+      category: $category
+      budget: $budget
+      deadline: $deadline
+      descriptionExtra: $descriptionExtra
+      requiredSkills: $requiredSkills
+      lookingForBullets: $lookingForBullets
+    ) {
+      id
+    }
+  }
+`;
+
+export const UPDATE_PROJECT_STATUS: TypedDocumentNode<UpdateProjectStatusData, UpdateProjectStatusVars> = gql`
+  mutation UpdateProjectStatus($projectId: ID!, $status: String!) {
+    updateProjectStatus(projectId: $projectId, status: $status) {
+      id
+      status
+    }
+  }
+`;
+
 export const SAVE_TASK: TypedDocumentNode<SaveTaskData, SaveTaskVars> = gql`
   mutation SaveTask($projectId: ID!) {
     saveTask(projectId: $projectId)
@@ -85,6 +132,43 @@ export const REACH_OUT: TypedDocumentNode<ReachOutData, ReachOutVars> = gql`
     reachOut(message: $message, projectId: $projectId, studentId: $studentId) {
       id
       status
+    }
+  }
+`;
+
+export const SEND_MESSAGE: TypedDocumentNode<SendMessageData, SendMessageVars> = gql`
+  mutation SendMessage($engagementId: ID!, $text: String!) {
+    sendMessage(engagementId: $engagementId, text: $text) {
+      id
+    }
+  }
+`;
+
+export const ADVANCE_ENGAGEMENT_STATUS: TypedDocumentNode<AdvanceStatusData, AdvanceStatusVars> = gql`
+  mutation AdvanceEngagementStatus($engagementId: ID!, $status: String!, $agreedPrice: String) {
+    advanceEngagementStatus(engagementId: $engagementId, status: $status, agreedPrice: $agreedPrice) {
+      id
+      status
+    }
+  }
+`;
+
+export const FUND_ESCROW: TypedDocumentNode<FundEscrowData, FundEscrowVars> = gql`
+  mutation FundEscrow($engagementId: ID!) {
+    fundEscrow(engagementId: $engagementId) {
+      id
+      status
+      amount
+      platformFee
+    }
+  }
+`;
+
+export const SUBMIT_REVIEW: TypedDocumentNode<SubmitReviewData, SubmitReviewVars> = gql`
+  mutation SubmitReview($engagementId: ID!, $rating: Int!, $comment: String) {
+    submitReview(engagementId: $engagementId, rating: $rating, comment: $comment) {
+      id
+      rating
     }
   }
 `;

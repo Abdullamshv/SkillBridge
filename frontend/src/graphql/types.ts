@@ -81,6 +81,36 @@ export type ProjectDetail = {
 
 export type ProjectData = { project: ProjectDetail | null };
 
+export type MyProject = {
+  id: string;
+  title: string;
+  category: string;
+  budget: string;
+  platformFee: string;
+  businessTotal: string;
+  deadline: string;
+  status: string;
+  createdAt: string;
+  assignedStudent: { id: string; user: { username: string } } | null;
+};
+
+export type MyProjectsData = { myProjects: MyProject[] };
+
+export type CreateProjectData = { createProject: { id: string } };
+export type CreateProjectVars = {
+  title: string;
+  description: string;
+  category: string;
+  budget: string;
+  deadline: string;
+  descriptionExtra?: string;
+  requiredSkills?: string[];
+  lookingForBullets?: string[];
+};
+
+export type UpdateProjectStatusData = { updateProjectStatus: { id: string; status: string } };
+export type UpdateProjectStatusVars = { projectId: string; status: string };
+
 export type SavedTaskIdsData = { savedTaskIds: string[] };
 export type SavedStudentIdsData = { savedStudentIds: string[] };
 
@@ -146,3 +176,65 @@ export type SaveStudentVars = { studentId: string };
 
 export type ReachOutData = { reachOut: { id: string; status: string } };
 export type ReachOutVars = { message: string; projectId?: string; studentId?: string };
+
+export type Attachment = {
+  id: string;
+  originalName: string;
+  sizeBytes: number;
+  url: string;
+};
+
+export type EngagementMessage = {
+  id: string;
+  text: string;
+  createdAt: string;
+  sender: { id: string; username: string };
+  attachments: Attachment[];
+};
+
+export type EngagementTransaction = {
+  id: string;
+  status: string;
+  amount: string;
+  platformFee: string;
+};
+
+export type Engagement = {
+  id: string;
+  status: string;
+  agreedPrice: string | null;
+  updatedAt: string;
+  project: { id: string; title: string; budget: string } | null;
+  sme: { id: string; companyName: string; user: { id: string; username: string } };
+  student: { id: string; user: { id: string; username: string } };
+  messages: EngagementMessage[];
+  transaction: EngagementTransaction | null;
+  reviewerUsernames: string[];
+};
+
+export type EngagementsData = { engagements: Engagement[] };
+
+export type SendMessageData = { sendMessage: { id: string } };
+export type SendMessageVars = { engagementId: string; text: string };
+
+export type AdvanceStatusData = { advanceEngagementStatus: { id: string; status: string } };
+export type AdvanceStatusVars = { engagementId: string; status: string; agreedPrice?: string };
+
+export type FundEscrowData = { fundEscrow: { id: string; status: string; amount: string; platformFee: string } };
+export type FundEscrowVars = { engagementId: string };
+
+export type SubmitReviewData = { submitReview: { id: string; rating: number } };
+export type SubmitReviewVars = { engagementId: string; rating: number; comment?: string };
+
+export type WalletMonth = { label: string; value: string };
+
+export type WalletStats = {
+  thisMonthTotal: string;
+  escrowHeld: string;
+  activeTotal: string;
+  activeCount: number;
+  feesThisMonth: string;
+  months: WalletMonth[];
+};
+
+export type WalletStatsData = { walletStats: WalletStats };

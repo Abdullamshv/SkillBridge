@@ -1,10 +1,15 @@
 import datetime
 
+from decimal import Decimal
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
+from engagements.models import Attachment, Engagement, Message
+from payments.models import LedgerEntry, Transaction
+from payments.services import calculate_fee
 from projects.models import Project, ProjectMilestone, Review
 from users.models import SMEProfile, StudentProfile, User
 
@@ -173,6 +178,45 @@ STUDENTS = [
 
 DEMO_PASSWORD = "skillbridge-demo"
 
+# Office threads from the prototype — (sender_role, text, attachment or None).
+THREADS = [
+    dict(sme="Kopi Kita", student="Aisyah Rahman", task="Ramadan promo — 12 Instagram posts",
+         status=Engagement.Status.IN_PROGRESS, funded=True,
+         messages=[
+             ("sme", "Salam Aisyah! Loved your moodboard. For Raya we want warm gold and emerald — not the usual purple.", None),
+             ("student", "On it! I will send three cover directions tonight. Any product shots I should feature?", None),
+             ("sme", "Latest shots from our KLCC outlet attached.", ("raya-product-shots.zip", 210 * 1024 * 1024)),
+             ("student", "Draft 2 attached — swapped the kuih flatlay onto covers 4–6.", ("raya-drafts-v2.zip", 148 * 1024 * 1024)),
+             ("sme", "These are great. Final captions by Thursday and we are set.", None),
+         ]),
+    dict(sme="Green Grocer MY", student="Priya Nair", task="Sales dashboard from POS exports",
+         status=Engagement.Status.DELIVERED, funded=True,
+         messages=[
+             ("student", "Dashboard delivered! Refresh guide is on the last tab. Escrow release is on your side — happy to do a walkthrough call.", ("sales-dashboard-jun.pbix", 24 * 1024 * 1024)),
+             ("sme", "Reviewing today. The category split view is exactly what we needed.", None),
+         ]),
+    dict(sme="Batik Craft Co.", student="Nurul Izzati", task="10 product descriptions (EN + BM)",
+         status=Engagement.Status.AGREED, funded=True,
+         messages=[
+             ("sme", "Agreed on RM 280 for 10 descriptions, EN + BM. Escrow is funded — brief attached.", ("product-brief.pdf", 6 * 1024 * 1024)),
+             ("student", "Terima kasih! First five will be with you by Friday.", None),
+         ]),
+    dict(sme="Urban Fit Studio", student="Jason Tan", task="TikTok content — 2 week takeover",
+         status=Engagement.Status.REACHED_OUT, funded=False,
+         messages=[
+             ("sme", "Hi Jason — saw your Reels work for campus events. Could you take over our TikTok for two weeks in July? Budget on the task post.", None),
+         ]),
+    dict(sme="Nadia's Kitchen", student="Daniel Lim", task="One-page website for home bakery",
+         status=Engagement.Status.REACHED_OUT, funded=False,
+         messages=[
+             ("student", "Hi Nadia! I build fast one-pagers with online ordering built in — portfolio is on my profile. Keen to hear more about the bakery site.", None),
+         ]),
+]
+
+# Prototype wallet chart series (oldest first, current month last).
+STUDENT_EARNINGS_SERIES = [420, 660, 580, 890, 1020, 1240]   # Aisyah Rahman
+BUSINESS_SPEND_SERIES = [980, 1240, 1160, 1730, 1980, 2180]  # Kopi Kita
+
 
 class Command(BaseCommand):
     help = "Seed the dev database with the SkillBridge prototype's demo tasks and students."
@@ -206,10 +250,83 @@ class Command(BaseCommand):
                         defaults=dict(rating=round(rating), comment=quote),
                     )
 
+            self._seed_office_threads(sme_by_name, student_by_name)
+            self._seed_ledger_history(sme_by_name, student_by_name)
+
         self.stdout.write(self.style.SUCCESS(
-            f"Seeded {len(TASKS)} tasks and {len(STUDENTS)} students. "
+            f"Seeded {len(TASKS)} tasks, {len(STUDENTS)} students and "
+            f"{len(THREADS)} Office threads. "
             f"All demo accounts use password '{DEMO_PASSWORD}'."
         ))
+
+    def _seed_office_threads(self, sme_by_name, student_by_name):
+        for t in THREADS:
+            sme = sme_by_name[t["sme"]]
+            student = student_by_name[t["student"]]
+            project = Project.objects.filter(sme=sme, title=t["task"]).first()
+
+            engagement, _ = Engagement.objects.get_or_create(
+                sme=sme, student=student, defaults=dict(project=project),
+            )
+            engagement.project = project
+            engagement.status = t["status"]
+            engagement.agreed_price = project.budget if (t["funded"] and project) else None
+            engagement.save()
+
+            engagement.messages.all().delete()
+            for role, text, attachment in t["messages"]:
+                sender = sme.user if role == "sme" else student.user
+                message = Message.objects.create(engagement=engagement, sender=sender, text=text)
+                if attachment:
+                    name, size = attachment
+                    # Metadata-only demo row — no real file behind it.
+                    Attachment.objects.create(
+                        message=message,
+                        file=f"engagement_files/seed/{name}",
+                        original_name=name,
+                        size_bytes=size,
+                    )
+
+            Transaction.objects.filter(engagement=engagement).delete()
+            if t["funded"] and engagement.agreed_price is not None:
+                Transaction.objects.create(
+                    engagement=engagement,
+                    amount=engagement.agreed_price,
+                    platform_fee=calculate_fee(engagement.agreed_price),
+                    status=Transaction.Status.HELD,
+                    payment_reference="TEST-MODE-SEED",
+                )
+
+    def _seed_ledger_history(self, sme_by_name, student_by_name):
+        """Backdated ledger rows so the Wallet chart shows the prototype's
+        month-over-month shape. auto_now_add wins on create, so backdate via a
+        queryset update afterwards."""
+        aisyah = student_by_name["Aisyah Rahman"].user
+        kopi = sme_by_name["Kopi Kita"].user
+        LedgerEntry.objects.filter(user__in=[aisyah, kopi]).delete()
+
+        now = timezone.now()
+        n = len(STUDENT_EARNINGS_SERIES)
+        for i, (earned, spent) in enumerate(zip(STUDENT_EARNINGS_SERIES, BUSINESS_SPEND_SERIES)):
+            months_back = n - 1 - i
+            year, month = now.year, now.month
+            for _ in range(months_back):
+                month -= 1
+                if month == 0:
+                    year, month = year - 1, 12
+            when = timezone.make_aware(datetime.datetime(year, month, 1, 12, 0))
+            created = [
+                LedgerEntry.objects.create(
+                    user=aisyah, kind=LedgerEntry.Kind.EARNING, amount=Decimal(earned)
+                ).pk,
+                LedgerEntry.objects.create(
+                    user=kopi, kind=LedgerEntry.Kind.SPEND, amount=Decimal(spent)
+                ).pk,
+                LedgerEntry.objects.create(
+                    user=kopi, kind=LedgerEntry.Kind.FEE, amount=calculate_fee(Decimal(spent))
+                ).pk,
+            ]
+            LedgerEntry.objects.filter(pk__in=created).update(created_at=when)
 
     def _make_sme(self, name, industry, location, rating, rating_count):
         username = slugify(name)[:150]

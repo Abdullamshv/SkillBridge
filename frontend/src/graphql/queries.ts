@@ -1,6 +1,8 @@
 import { gql, type TypedDocumentNode } from "@apollo/client";
 import type {
+  EngagementsData,
   MeData,
+  MyProjectsData,
   NoVars,
   ProjectData,
   ProjectsData,
@@ -12,6 +14,7 @@ import type {
   StudentsData,
   StudentsVars,
   StudentVars,
+  WalletStatsData,
 } from "./types";
 
 export const GET_ME: TypedDocumentNode<MeData, NoVars> = gql`
@@ -108,6 +111,28 @@ export const GET_PROJECT: TypedDocumentNode<ProjectData, ProjectVars> = gql`
   }
 `;
 
+export const GET_MY_PROJECTS: TypedDocumentNode<MyProjectsData, NoVars> = gql`
+  query GetMyProjects {
+    myProjects {
+      id
+      title
+      category
+      budget
+      platformFee
+      businessTotal
+      deadline
+      status
+      createdAt
+      assignedStudent {
+        id
+        user {
+          username
+        }
+      }
+    }
+  }
+`;
+
 export const GET_SAVED_TASK_IDS: TypedDocumentNode<SavedTaskIdsData, NoVars> = gql`
   query GetSavedTaskIds {
     savedTaskIds
@@ -190,5 +215,74 @@ export const GET_STUDENT: TypedDocumentNode<StudentData, StudentVars> = gql`
 export const GET_SAVED_STUDENT_IDS: TypedDocumentNode<SavedStudentIdsData, NoVars> = gql`
   query GetSavedStudentIds {
     savedStudentIds
+  }
+`;
+
+export const GET_ENGAGEMENTS: TypedDocumentNode<EngagementsData, NoVars> = gql`
+  query GetEngagements {
+    engagements {
+      id
+      status
+      agreedPrice
+      updatedAt
+      project {
+        id
+        title
+        budget
+      }
+      sme {
+        id
+        companyName
+        user {
+          id
+          username
+        }
+      }
+      student {
+        id
+        user {
+          id
+          username
+        }
+      }
+      messages {
+        id
+        text
+        createdAt
+        sender {
+          id
+          username
+        }
+        attachments {
+          id
+          originalName
+          sizeBytes
+          url
+        }
+      }
+      transaction {
+        id
+        status
+        amount
+        platformFee
+      }
+      reviewerUsernames
+    }
+  }
+`;
+
+export const GET_WALLET_STATS: TypedDocumentNode<WalletStatsData, NoVars> = gql`
+  query GetWalletStats {
+    walletStats {
+      thisMonthTotal
+      escrowHeld
+      activeTotal
+      activeCount
+      feesThisMonth
+      months {
+        label
+        value
+      }
+    }
   }
 `;

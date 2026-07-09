@@ -2,7 +2,13 @@ from typing import List, Optional
 
 import strawberry
 
-from .types import EngagementType, ProjectType, StudentProfileType, UserType
+from .types import (
+    EngagementType,
+    ProjectType,
+    StudentProfileType,
+    UserType,
+    WalletStatsType,
+)
 
 
 @strawberry.type
@@ -94,9 +100,13 @@ class Query:
     ) -> List[StudentProfileType]:
         from users.models import StudentProfile
 
+        from django.db.models import Q
+
         qs = StudentProfile.objects.select_related("user")
         if search:
-            qs = qs.filter(bio__icontains=search) | qs.filter(user__username__icontains=search)
+            qs = qs.filter(
+                Q(bio__icontains=search) | Q(user__username__icontains=search)
+            ).distinct()
         if category:
             qs = qs.filter(primary_category=category)
         if min_price:
@@ -138,8 +148,11 @@ class Query:
         if not user.is_authenticated:
             raise PermissionError("Authentication required")
         qs = Engagement.objects.select_related(
-            "project", "sme", "sme__user", "student", "student__user",
-        ).prefetch_related("messages", "messages__sender")
+            "project", "sme", "sme__user", "student", "student__user", "transaction",
+        ).prefetch_related(
+            "messages", "messages__sender", "messages__attachments",
+            "reviews", "reviews__reviewer",
+        )
         if user.role == "sme":
             qs = qs.filter(sme=user.sme_profile)
         elif user.role == "student":
@@ -157,10 +170,24 @@ class Query:
             raise PermissionError("Authentication required")
         try:
             e = Engagement.objects.select_related(
-                "project", "sme", "sme__user", "student", "student__user",
-            ).prefetch_related("messages", "messages__sender").get(pk=id)
+                "project", "sme", "sme__user", "student", "student__user", "transaction",
+            ).prefetch_related(
+                "messages", "messages__sender", "messages__attachments",
+                "reviews", "reviews__reviewer",
+            ).get(pk=id)
         except Engagement.DoesNotExist:
             return None
         if user.id not in (e.sme.user_id, e.student.user_id):
             raise PermissionError("Not a participant in this engagement")
         return EngagementType.from_model(e)
+
+    # ── Wallet ───────────────────────────────────────────────────────────────
+
+    @strawberry.field
+    def wallet_stats(self, info: strawberry.types.Info) -> WalletStatsType:
+        from payments.services import wallet_stats_for
+
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise PermissionError("Authentication required")
+        return WalletStatsType.from_stats(wallet_stats_for(user))

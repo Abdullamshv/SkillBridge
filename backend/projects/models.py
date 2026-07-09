@@ -72,6 +72,7 @@ class SavedStudent(models.Model):
 
 class Review(models.Model):
     project    = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="reviews", null=True, blank=True)
+    engagement = models.ForeignKey("engagements.Engagement", on_delete=models.SET_NULL, related_name="reviews", null=True, blank=True)
     reviewer   = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="reviews_given")
     reviewee   = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="reviews_received")
     rating     = models.PositiveSmallIntegerField()

@@ -8,6 +8,7 @@ from .types import (
     EngagementType,
     MessageType,
     ProjectType,
+    ReviewType,
     SMEProfileType,
     StudentProfileType,
     TransactionType,
@@ -232,6 +233,8 @@ class Mutation:
         from projects.models import Project
 
         user = info.context.request.user
+        if status not in Project.Status.values:
+            raise ValueError(f"Invalid status '{status}'")
         project = Project.objects.select_related(
             "sme", "sme__user",
             "assigned_student", "assigned_student__user",
@@ -350,6 +353,7 @@ class Mutation:
         from django.db import transaction as db_transaction
         from engagements.models import Engagement
         from engagements.services import advance_status
+        from payments.services import approve_completion
 
         user = info.context.request.user
         with db_transaction.atomic():
@@ -365,31 +369,51 @@ class Mutation:
             if agreed_price is not None:
                 engagement.agreed_price = Decimal(agreed_price)
                 engagement.save(update_fields=["agreed_price"])
-            advance_status(engagement, status, user)
+            if status == Engagement.Status.COMPLETED:
+                # Approval and escrow release are one operation (spec §8).
+                approve_completion(engagement, user)
+            else:
+                advance_status(engagement, status, user)
         return EngagementType.from_model(engagement)
+
+    # ── Reviews ───────────────────────────────────────────────────────────
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    def submit_review(
+        self,
+        info: strawberry.types.Info,
+        engagement_id: strawberry.ID,
+        rating: int,
+        comment: str = "",
+    ) -> ReviewType:
+        from engagements.models import Engagement
+        from projects.services import submit_review as submit_review_service
+
+        engagement = Engagement.objects.select_related(
+            "project", "sme", "sme__user", "student", "student__user",
+        ).get(pk=engagement_id)
+        review = submit_review_service(
+            engagement, info.context.request.user, rating, comment
+        )
+        return ReviewType.from_model(review)
 
     # ── Payments ──────────────────────────────────────────────────────────
 
     @strawberry.mutation(permission_classes=[IsSME])
-    def create_transaction(
+    def fund_escrow(
         self,
         info: strawberry.types.Info,
         engagement_id: strawberry.ID,
-        amount: str,
     ) -> TransactionType:
         from engagements.models import Engagement
-        from payments.models import Transaction
-        from payments.services import calculate_fee
+        from payments.services import fund_escrow as fund_escrow_service
 
-        engagement = Engagement.objects.select_related("sme", "sme__user").get(
-            pk=engagement_id, sme__user=info.context.request.user
-        )
-        amount_decimal = Decimal(amount)
-        tx = Transaction.objects.create(
-            engagement=engagement,
-            amount=amount_decimal,
-            platform_fee=calculate_fee(amount_decimal),
-        )
+        engagement = Engagement.objects.select_related(
+            "project", "sme", "sme__user",
+        ).get(pk=engagement_id, sme__user=info.context.request.user)
+        if engagement.status == Engagement.Status.REACHED_OUT:
+            raise ValueError("Agree on terms before funding escrow")
+        tx = fund_escrow_service(engagement)
         return TransactionType.from_model(tx)
 
     @strawberry.mutation(permission_classes=[IsAdmin])
@@ -398,27 +422,13 @@ class Mutation:
         info: strawberry.types.Info,
         engagement_id: strawberry.ID,
     ) -> TransactionType:
-        from django.db import transaction as db_transaction
+        """Admin backstop for manual release — same one-shot release path the
+        business approval uses."""
         from engagements.models import Engagement
-        from engagements.services import advance_status
-        from payments.models import LedgerEntry, Transaction
+        from payments.services import approve_completion
 
-        with db_transaction.atomic():
-            tx = (
-                Transaction.objects.select_for_update()
-                .select_related(
-                    "engagement", "engagement__student", "engagement__student__user",
-                )
-                .get(engagement_id=engagement_id, status=Transaction.Status.HELD)
-            )
-            tx.status = Transaction.Status.RELEASED
-            tx.save()
-            engagement = tx.engagement
-            advance_status(engagement, Engagement.Status.COMPLETED, info.context.request.user)
-            LedgerEntry.objects.create(
-                user=engagement.student.user,
-                engagement=engagement,
-                kind=LedgerEntry.Kind.EARNING,
-                amount=tx.amount,
-            )
+        engagement = Engagement.objects.select_related(
+            "project", "sme", "sme__user", "student", "student__user",
+        ).get(pk=engagement_id)
+        tx = approve_completion(engagement, info.context.request.user)
         return TransactionType.from_model(tx)
