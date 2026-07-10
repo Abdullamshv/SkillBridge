@@ -8,8 +8,11 @@ import type {
   FundEscrowVars,
   LoginData,
   LoginVars,
+  LoginWithGoogleData,
+  LoginWithGoogleVars,
   LogoutData,
   NoVars,
+  ResendVerificationData,
   ReachOutData,
   ReachOutVars,
   RegisterData,
@@ -26,6 +29,8 @@ import type {
   UnsaveTaskData,
   UpdateProjectStatusData,
   UpdateProjectStatusVars,
+  VerifyEmailData,
+  VerifyEmailVars,
 } from "./types";
 
 export const REGISTER: TypedDocumentNode<RegisterData, RegisterVars> = gql`
@@ -59,6 +64,33 @@ export const LOGIN: TypedDocumentNode<LoginData, LoginVars> = gql`
       role
       isVerified
     }
+  }
+`;
+
+export const LOGIN_WITH_GOOGLE: TypedDocumentNode<LoginWithGoogleData, LoginWithGoogleVars> = gql`
+  mutation LoginWithGoogle($idToken: String!, $role: String) {
+    loginWithGoogle(idToken: $idToken, role: $role) {
+      id
+      username
+      email
+      role
+      isVerified
+    }
+  }
+`;
+
+export const VERIFY_EMAIL: TypedDocumentNode<VerifyEmailData, VerifyEmailVars> = gql`
+  mutation VerifyEmail($token: String!) {
+    verifyEmail(token: $token) {
+      id
+      isVerified
+    }
+  }
+`;
+
+export const RESEND_VERIFICATION: TypedDocumentNode<ResendVerificationData, NoVars> = gql`
+  mutation ResendVerification {
+    resendVerification
   }
 `;
 
@@ -156,10 +188,13 @@ export const ADVANCE_ENGAGEMENT_STATUS: TypedDocumentNode<AdvanceStatusData, Adv
 export const FUND_ESCROW: TypedDocumentNode<FundEscrowData, FundEscrowVars> = gql`
   mutation FundEscrow($engagementId: ID!) {
     fundEscrow(engagementId: $engagementId) {
-      id
-      status
-      amount
-      platformFee
+      checkoutUrl
+      transaction {
+        id
+        status
+        amount
+        platformFee
+      }
     }
   }
 `;

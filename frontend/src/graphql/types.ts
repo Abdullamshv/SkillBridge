@@ -166,6 +166,14 @@ export type RegisterVars = { username: string; email: string; password: string; 
 export type LoginData = { login: AuthUser };
 export type LoginVars = { username: string; password: string };
 
+export type LoginWithGoogleData = { loginWithGoogle: AuthUser };
+export type LoginWithGoogleVars = { idToken: string; role?: string };
+
+export type VerifyEmailData = { verifyEmail: AuthUser };
+export type VerifyEmailVars = { token: string };
+
+export type ResendVerificationData = { resendVerification: boolean };
+
 export type LogoutData = { logout: boolean };
 
 export type SaveTaskData = { saveTask: boolean };
@@ -222,7 +230,12 @@ export type SendMessageVars = { engagementId: string; text: string };
 export type AdvanceStatusData = { advanceEngagementStatus: { id: string; status: string } };
 export type AdvanceStatusVars = { engagementId: string; status: string; agreedPrice?: string };
 
-export type FundEscrowData = { fundEscrow: { id: string; status: string; amount: string; platformFee: string } };
+export type FundEscrowData = {
+  fundEscrow: {
+    checkoutUrl: string;
+    transaction: { id: string; status: string; amount: string; platformFee: string };
+  };
+};
 export type FundEscrowVars = { engagementId: string };
 
 export type SubmitReviewData = { submitReview: { id: string; rating: number } };

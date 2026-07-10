@@ -11,3 +11,5 @@ sqlparse==0.5.5
 strawberry-graphql==0.319.0
 typing_extensions==4.15.0
 tzdata==2026.2
+requests==2.34.2
+google-auth==2.55.2

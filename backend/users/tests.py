@@ -1,7 +1,17 @@
-from django.test import TestCase
+from unittest import mock
+
+from django.core import mail, signing
+from django.test import TestCase, override_settings
 
 from .models import SMEProfile, StudentProfile, User
-from .services import vet_student, verify_sme
+from .services import (
+    EMAIL_VERIFY_SALT,
+    confirm_email_verification,
+    issue_email_verification,
+    login_with_google,
+    vet_student,
+    verify_sme,
+)
 
 
 def make_admin():
@@ -64,3 +74,83 @@ class VerifySmeTests(TestCase):
         verify_sme(self.profile, self.admin, verified=False)
         self.profile.refresh_from_db()
         self.assertFalse(self.profile.is_verified)
+
+
+class EmailVerificationTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="student1", password="x", role="student", email="s1@siswa.um.edu.my"
+        )
+
+    def test_issue_sends_email_with_link(self):
+        issue_email_verification(self.user)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("/auth/verify?token=", mail.outbox[0].body)
+        self.assertEqual(mail.outbox[0].to, ["s1@siswa.um.edu.my"])
+
+    def test_issue_skips_blank_email(self):
+        self.user.email = ""
+        self.user.save()
+        issue_email_verification(self.user)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_confirm_roundtrip(self):
+        token = signing.dumps({"uid": self.user.pk}, salt=EMAIL_VERIFY_SALT)
+        user = confirm_email_verification(token)
+        self.assertTrue(user.is_verified)
+
+    def test_confirm_rejects_garbage(self):
+        with self.assertRaises(ValueError):
+            confirm_email_verification("not-a-token")
+
+    def test_confirm_rejects_wrong_salt(self):
+        token = signing.dumps({"uid": self.user.pk}, salt="other-salt")
+        with self.assertRaises(ValueError):
+            confirm_email_verification(token)
+
+
+@override_settings(GOOGLE_CLIENT_ID="test-client-id")
+class GoogleLoginTests(TestCase):
+    CLAIMS = {"email": "aisyah@gmail.com", "email_verified": True}
+
+    def test_not_configured(self):
+        with override_settings(GOOGLE_CLIENT_ID=""):
+            with self.assertRaisesMessage(ValueError, "not configured"):
+                login_with_google("tok")
+
+    @mock.patch("users.services._verify_google_token", return_value=CLAIMS)
+    def test_new_user_requires_role(self, _):
+        with self.assertRaisesMessage(ValueError, "Choose a role"):
+            login_with_google("tok")
+
+    @mock.patch("users.services._verify_google_token", return_value=CLAIMS)
+    def test_new_user_created_with_profile(self, _):
+        user = login_with_google("tok", role="student")
+        self.assertEqual(user.email, "aisyah@gmail.com")
+        self.assertEqual(user.role, "student")
+        self.assertTrue(user.is_verified)
+        self.assertFalse(user.has_usable_password())
+        self.assertTrue(StudentProfile.objects.filter(user=user).exists())
+
+    @mock.patch("users.services._verify_google_token", return_value=CLAIMS)
+    def test_existing_user_logs_in_without_role(self, _):
+        existing = User.objects.create_user(
+            username="aisyah", password="x", role="student", email="aisyah@gmail.com"
+        )
+        user = login_with_google("tok")
+        self.assertEqual(user.pk, existing.pk)
+        self.assertEqual(User.objects.filter(email__iexact="aisyah@gmail.com").count(), 1)
+
+    @mock.patch(
+        "users.services._verify_google_token",
+        return_value={"email": "x@gmail.com", "email_verified": False},
+    )
+    def test_unverified_google_email_rejected(self, _):
+        with self.assertRaises(ValueError):
+            login_with_google("tok", role="student")
+
+    @mock.patch("users.services._verify_google_token", return_value=CLAIMS)
+    def test_username_collision_gets_suffix(self, _):
+        User.objects.create_user(username="aisyah", password="x", role="sme", email="other@x.my")
+        user = login_with_google("tok", role="student")
+        self.assertEqual(user.username, "aisyah2")

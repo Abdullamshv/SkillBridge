@@ -6,6 +6,7 @@ import strawberry
 
 from .types import (
     EngagementType,
+    FundEscrowPayload,
     MessageType,
     ProjectType,
     ReviewType,
@@ -85,6 +86,10 @@ class Mutation:
         else:
             SMEProfile.objects.create(user=user)
         auth_login(info.context.request, user)
+
+        from users.services import issue_email_verification
+
+        issue_email_verification(user)
         return UserType.from_model(user)
 
     @strawberry.mutation
@@ -107,6 +112,37 @@ class Mutation:
         from django.contrib.auth import logout as auth_logout
 
         auth_logout(info.context.request)
+        return True
+
+    @strawberry.mutation
+    def login_with_google(
+        self,
+        info: strawberry.types.Info,
+        id_token: str,
+        role: Optional[str] = None,
+    ) -> UserType:
+        from django.contrib.auth import login as auth_login
+        from users.services import login_with_google as login_with_google_service
+
+        user = login_with_google_service(id_token, role)
+        auth_login(info.context.request, user)
+        return UserType.from_model(user)
+
+    @strawberry.mutation
+    def verify_email(self, info: strawberry.types.Info, token: str) -> UserType:
+        from users.services import confirm_email_verification
+
+        user = confirm_email_verification(token)
+        return UserType.from_model(user)
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    def resend_verification(self, info: strawberry.types.Info) -> bool:
+        from users.services import issue_email_verification
+
+        user = info.context.request.user
+        if user.is_verified:
+            return False
+        issue_email_verification(user)
         return True
 
     # ── Profiles ──────────────────────────────────────────────────────────
@@ -405,17 +441,19 @@ class Mutation:
         self,
         info: strawberry.types.Info,
         engagement_id: strawberry.ID,
-    ) -> TransactionType:
+    ) -> FundEscrowPayload:
         from engagements.models import Engagement
-        from payments.services import fund_escrow as fund_escrow_service
+        from payments.services import initiate_escrow_funding
 
         engagement = Engagement.objects.select_related(
             "project", "sme", "sme__user",
         ).get(pk=engagement_id, sme__user=info.context.request.user)
         if engagement.status == Engagement.Status.REACHED_OUT:
             raise ValueError("Agree on terms before funding escrow")
-        tx = fund_escrow_service(engagement)
-        return TransactionType.from_model(tx)
+        tx, checkout_url = initiate_escrow_funding(engagement)
+        return FundEscrowPayload(
+            transaction=TransactionType.from_model(tx), checkout_url=checkout_url
+        )
 
     @strawberry.mutation(permission_classes=[IsAdmin])
     def release_payment(

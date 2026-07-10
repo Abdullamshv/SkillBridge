@@ -13,7 +13,10 @@ from payments.services import (
     calculate_business_total,
     calculate_fee,
     calculate_student_payout,
+    confirm_escrow_funding,
+    fail_escrow_funding,
     fund_escrow,
+    initiate_escrow_funding,
     release_escrow,
     wallet_stats_for,
 )
@@ -125,6 +128,127 @@ class EscrowLifecycleTests(TestCase):
     def test_release_requires_held(self):
         with self.assertRaises(Transaction.DoesNotExist):
             release_escrow(self.engagement)
+
+
+class GatewayFundingTests(TestCase):
+    """The redirect+webhook funding path used by real gateways (spec §11)."""
+
+    def setUp(self):
+        self.student_user, self.sme_user, self.student, self.sme = make_parties()
+        self.engagement = Engagement.objects.create(
+            sme=self.sme, student=self.student,
+            status=Engagement.Status.AGREED, agreed_price=Decimal("100.00"),
+        )
+
+    def test_initiate_creates_pending_without_ledger(self):
+        tx, checkout_url = initiate_escrow_funding(self.engagement)
+        self.assertEqual(tx.status, Transaction.Status.PENDING)
+        self.assertIn(f"/api/payments/dev-checkout/{tx.pk}/", checkout_url)
+        self.assertEqual(LedgerEntry.objects.count(), 0)
+
+    def test_confirm_moves_to_held_and_writes_ledger_once(self):
+        tx, _ = initiate_escrow_funding(self.engagement)
+        confirm_escrow_funding(tx, payment_reference="DEV-1")
+        confirm_escrow_funding(tx, payment_reference="DEV-1")  # webhook retry
+        tx.refresh_from_db()
+        self.assertEqual(tx.status, Transaction.Status.HELD)
+        self.assertEqual(LedgerEntry.objects.filter(kind=LedgerEntry.Kind.SPEND).count(), 1)
+        self.assertEqual(LedgerEntry.objects.filter(kind=LedgerEntry.Kind.FEE).count(), 1)
+
+    def test_fail_then_reinitiate_reuses_row(self):
+        tx, _ = initiate_escrow_funding(self.engagement)
+        fail_escrow_funding(tx)
+        tx.refresh_from_db()
+        self.assertEqual(tx.status, Transaction.Status.FAILED)
+
+        tx2, _ = initiate_escrow_funding(self.engagement)
+        self.assertEqual(tx2.pk, tx.pk)  # OneToOne row reused
+        self.assertEqual(tx2.status, Transaction.Status.PENDING)
+        self.assertEqual(Transaction.objects.count(), 1)
+
+    def test_initiate_rejected_when_already_held(self):
+        fund_escrow(self.engagement)
+        with self.assertRaises(ValueError):
+            initiate_escrow_funding(self.engagement)
+
+    def test_approve_rejected_while_pending(self):
+        initiate_escrow_funding(self.engagement)
+        advance_status(self.engagement, Engagement.Status.IN_PROGRESS, self.student_user)
+        advance_status(self.engagement, Engagement.Status.DELIVERED, self.student_user)
+        with self.assertRaises(ValueError):
+            approve_completion(self.engagement, self.sme_user)
+
+    def test_fail_only_from_pending(self):
+        tx, _ = initiate_escrow_funding(self.engagement)
+        confirm_escrow_funding(tx)
+        with self.assertRaises(ValueError):
+            fail_escrow_funding(tx)
+
+
+class DevCheckoutViewTests(TestCase):
+    def setUp(self):
+        self.student_user, self.sme_user, self.student, self.sme = make_parties()
+        self.engagement = Engagement.objects.create(
+            sme=self.sme, student=self.student,
+            status=Engagement.Status.AGREED, agreed_price=Decimal("100.00"),
+        )
+        self.tx, self.checkout_url = initiate_escrow_funding(self.engagement)
+        # strip scheme+host — Django test client wants the path
+        self.path = self.checkout_url.split("localhost:8000")[1]
+
+    def test_page_requires_valid_signature(self):
+        res = self.client.get(f"/api/payments/dev-checkout/{self.tx.pk}/?sig=forged")
+        self.assertEqual(res.status_code, 403)
+
+    def test_page_renders_with_signature(self):
+        res = self.client.get(self.path)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(b"Simulate successful payment", res.content)
+
+    def test_success_confirms_and_redirects(self):
+        sig = self.path.split("sig=")[1]
+        res = self.client.post(
+            f"/api/payments/dev-checkout/{self.tx.pk}/",
+            {"sig": sig, "outcome": "success"},
+        )
+        self.assertEqual(res.status_code, 302)
+        self.tx.refresh_from_db()
+        self.assertEqual(self.tx.status, Transaction.Status.HELD)
+        self.assertEqual(LedgerEntry.objects.count(), 2)
+
+    def test_failure_marks_failed(self):
+        sig = self.path.split("sig=")[1]
+        self.client.post(
+            f"/api/payments/dev-checkout/{self.tx.pk}/",
+            {"sig": sig, "outcome": "failure"},
+        )
+        self.tx.refresh_from_db()
+        self.assertEqual(self.tx.status, Transaction.Status.FAILED)
+        self.assertEqual(LedgerEntry.objects.count(), 0)
+
+
+class BillplzSignatureTests(TestCase):
+    def test_x_signature_math(self):
+        import os
+        from unittest import mock
+
+        from payments.gateway import BillplzGateway
+
+        env = {
+            "BILLPLZ_API_KEY": "key",
+            "BILLPLZ_COLLECTION_ID": "col",
+            "BILLPLZ_XSIGNATURE_KEY": "secret",
+        }
+        with mock.patch.dict(os.environ, env):
+            gw = BillplzGateway()
+        # independent reference computation
+        import hashlib
+        import hmac as hmac_lib
+
+        data = {"id": "abc123", "paid": "true", "amount": "10200"}
+        source = "|".join(f"{k}{v}" for k, v in sorted(data.items()))
+        expected = hmac_lib.new(b"secret", source.encode(), hashlib.sha256).hexdigest()
+        self.assertEqual(gw.compute_x_signature({**data, "x_signature": "ignored"}), expected)
 
 
 class WalletStatsTests(TestCase):

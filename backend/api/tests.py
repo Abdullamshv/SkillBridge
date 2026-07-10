@@ -108,3 +108,47 @@ class VettedOnlyFilterTests(GraphQLTestCase):
         students = data["data"]["students"]
         self.assertEqual(len(students), 2)
         self.assertTrue(all(s["isVetted"] for s in students))
+
+
+class AuthMutationTests(GraphQLTestCase):
+    REGISTER = """
+    mutation { register(username: "newbie", email: "n@siswa.um.edu.my",
+                        password: "pass12345", role: "student") { id isVerified } }
+    """
+    VERIFY = 'mutation ($t: String!) { verifyEmail(token: $t) { id isVerified } }'
+    GOOGLE = 'mutation { loginWithGoogle(idToken: "tok", role: "student") { id } }'
+
+    def test_register_sends_verification_email(self):
+        from django.core import mail
+
+        data = self.gql(self.REGISTER)
+        self.assertNotIn("errors", data)
+        self.assertFalse(data["data"]["register"]["isVerified"])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("/auth/verify?token=", mail.outbox[0].body)
+
+    def test_verify_email_mutation(self):
+        from django.core import mail
+
+        self.gql(self.REGISTER)
+        token = mail.outbox[0].body.split("token=")[1].split("\n")[0].strip()
+        data = self.gql(self.VERIFY, {"t": token})
+        self.assertNotIn("errors", data)
+        self.assertTrue(data["data"]["verifyEmail"]["isVerified"])
+
+    def test_verify_email_bad_token(self):
+        data = self.gql(self.VERIFY, {"t": "garbage"})
+        self.assertIn("Invalid verification link", str(data["errors"]))
+
+    def test_login_with_google_unconfigured(self):
+        data = self.gql(self.GOOGLE)
+        self.assertIn("not configured", str(data["errors"]))
+
+    def test_resend_verification(self):
+        from django.core import mail
+
+        self.gql(self.REGISTER)  # register also logs in
+        mail.outbox.clear()
+        data = self.gql("mutation { resendVerification }")
+        self.assertTrue(data["data"]["resendVerification"])
+        self.assertEqual(len(mail.outbox), 1)

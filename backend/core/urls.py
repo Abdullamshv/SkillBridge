@@ -24,11 +24,14 @@ from strawberry.django.views import GraphQLView
 
 from api.schema import schema
 from api.views import upload_attachment
+from payments.views import dev_checkout, payment_webhook
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("graphql/", csrf_exempt(GraphQLView.as_view(schema=schema))),
     path("api/upload/<int:engagement_id>/", upload_attachment),
+    path("api/payments/dev-checkout/<int:tx_id>/", dev_checkout),
+    path("api/payments/webhook/", payment_webhook),
 ]
 
 if settings.DEBUG:

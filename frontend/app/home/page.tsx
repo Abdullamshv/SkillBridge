@@ -7,6 +7,7 @@ import { GET_ME } from "@/src/graphql/queries";
 import { Navbar } from "@/src/components/Navbar";
 import { StudentHome } from "@/src/components/StudentHome";
 import { SmeHome } from "@/src/components/SmeHome";
+import { VerifyEmailBanner } from "@/src/components/VerifyEmailBanner";
 
 export default function HomePage() {
   const router = useRouter();
@@ -30,6 +31,9 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
+      <div className="px-6">
+        <VerifyEmailBanner />
+      </div>
       {data.me.role === "sme" ? <SmeHome /> : <StudentHome />}
     </div>
   );

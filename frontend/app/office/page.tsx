@@ -268,7 +268,12 @@ function ChatPane({
   async function doFund() {
     setActionError(null);
     try {
-      await fundEscrow({ variables: { engagementId: engagement.id } });
+      const res = await fundEscrow({ variables: { engagementId: engagement.id } });
+      const checkoutUrl = res.data?.fundEscrow.checkoutUrl;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl; // gateway checkout; redirects back to /office
+        return;
+      }
       onChanged();
     } catch (err) {
       setActionError(friendlyError(err));
@@ -295,10 +300,15 @@ function ChatPane({
         </Button>
       </div>
     );
-  } else if (meRole === "sme" && engagement.status !== "completed" && !tx) {
+  } else if (
+    meRole === "sme" &&
+    engagement.status !== "completed" &&
+    (!tx || tx.status === "pending" || tx.status === "failed")
+  ) {
     action = (
       <Button disabled={busy} onClick={doFund}>
-        Fund escrow — {price ? formatRM(price) : ""} + 2% fee
+        {tx?.status === "failed" ? "Retry payment" : "Fund escrow"} —{" "}
+        {price ? formatRM(price) : ""} + 2% fee
       </Button>
     );
   } else if (meRole === "student" && engagement.status === "agreed") {

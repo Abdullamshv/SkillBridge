@@ -24,11 +24,11 @@ SkillBridge connects Malaysian university students with local SMEs that need aff
 | Backend framework | **Django 6.0** | Apps: `users`, `projects`, `engagements`, `payments`, `api`, `core` (settings) |
 | API layer | **Strawberry GraphQL** — single endpoint `POST /graphql/` | Schema lives in `backend/api/` (`schema.py`, `queries.py`, `mutations.py`, `types.py`) |
 | Frontend | **Next.js (app router) + Apollo Client** in `frontend/` | Tailwind v4 CSS-first tokens in `frontend/app/globals.css` |
-| Auth | **Django session auth** via GraphQL mutations (`register`/`login`/`logout`); custom `users.User` with `role` (student / sme / admin) | Apollo sends `credentials: "include"`; CORS restricted to `http://localhost:3000` with credentials. Google/Apple social login **not implemented** (future work) |
+| Auth | **Django session auth** via GraphQL mutations (`register`/`login`/`logout`), plus **Google Sign-In** (`loginWithGoogle`) and **email verification** (`verifyEmail`/`resendVerification`); custom `users.User` with `role` (student / sme / admin) | Apollo sends `credentials: "include"`; CORS restricted to `http://localhost:3000` with credentials. Google button activates when `GOOGLE_CLIENT_ID`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID` are set; Apple login is future work |
 | Database | SQLite in dev; Postgres via env vars in `core/settings.py` | Switch is automatic when `DB_NAME`/`DB_USER` etc. are set |
 | File storage | Local `media/` (dev); uploads via `POST /api/upload/<engagement_id>/` | S3/R2 + presigned uploads is future work — do not proxy multi-GB files through Django in production |
 | Chat | Apollo **polling** on the Office screen | Upgrade path: Django Channels / WebSockets |
-| Payments / escrow | **TEST-MODE stub** — `payments.Transaction` + `LedgerEntry` track state; `payment_reference="TEST-MODE"`, funds are never actually moved | Real gateway (Billplz / ToyyibPay / CHIP) is deliberately deferred — see §11 |
+| Payments / escrow | **Gateway abstraction** (`payments/gateway.py`): redirect + webhook flow with a **dev simulator** (default, no keys) and a **Billplz driver** (sandbox by default, enabled via `PAYMENT_GATEWAY=billplz` + keys). `Transaction` + `LedgerEntry` track state; funds custody stays with the gateway | See §11 — no real money moves until Billplz keys are configured |
 | Background jobs | None | Add Celery + Redis when async email/notifications are needed |
 
 ---
@@ -163,7 +163,7 @@ Skills_Bridge/
 
 ## 6. GraphQL API Surface
 
-Single endpoint: `POST /graphql/` (session-cookie auth). Non-GraphQL endpoints: `POST /api/upload/<engagement_id>/` (multipart file upload) and `/admin/`.
+Single endpoint: `POST /graphql/` (session-cookie auth). Non-GraphQL endpoints: `POST /api/upload/<engagement_id>/` (multipart file upload), `GET|POST /api/payments/dev-checkout/<tx_id>/` (dev gateway's simulated checkout, signed URL), `POST /api/payments/webhook/` (gateway callback, signature-verified), and `/admin/`.
 
 **Queries** (`backend/api/queries.py`):
 
@@ -180,13 +180,13 @@ Single endpoint: `POST /graphql/` (session-cookie auth). Non-GraphQL endpoints: 
 
 **Mutations** (`backend/api/mutations.py`), with permission classes `IsAuthenticated` / `IsStudent` / `IsSME` / `IsAdmin` / `IsSMEOrAdmin`:
 
-- **Auth:** `register(username, email, password, role)` (creates the matching profile and logs in), `login`, `logout`
+- **Auth:** `register(username, email, password, role)` (creates the matching profile, logs in, and sends the verification email), `login`, `logout`, `loginWithGoogle(idToken, role?)` (role only needed for first-time users), `verifyEmail(token)`, `resendVerification`
 - **Profiles:** `updateStudentProfile(...)`, `updateSmeProfile(...)`
 - **Tasks:** `createProject(...)` (SME), `updateProjectStatus(projectId, status)` (SME owns it, or admin), `saveTask` / `unsaveTask` (student)
 - **Talent:** `saveStudent` / `unsaveStudent` (SME)
 - **Office:** `reachOut(message, projectId?, studentId?)` (creates or reuses the Engagement + first message), `sendMessage(engagementId, text)`, `advanceEngagementStatus(engagementId, status, agreedPrice?)` (status `completed` routes through `approve_completion` — approval and escrow release are one atomic operation)
 - **Reviews:** `submitReview(engagementId, rating, comment)`
-- **Payments:** `fundEscrow(engagementId)` (SME; requires status past `reached_out`), `releasePayment(engagementId)` (admin backstop)
+- **Payments:** `fundEscrow(engagementId)` (SME; requires status past `reached_out`; returns `{ transaction, checkoutUrl }` — the browser redirects to the checkout and the gateway's webhook flips the transaction to HELD), `releasePayment(engagementId)` (admin backstop)
 - **Vetting (admin):** `vetStudent(studentId, vetted)` and `verifySme(smeId, verified)` — see §9
 
 ---
@@ -215,7 +215,9 @@ Enforced server-side in `backend/engagements/services.py` (`ALLOWED_TRANSITIONS`
 
 ## 9. Authentication & Vetting
 
-- **Session auth** via GraphQL (`register`/`login`/`logout`); the `role` is chosen at signup and the matching profile row is created immediately. Google/Apple social login shown in the design is **future work** — render the buttons disabled.
+- **Session auth** via GraphQL (`register`/`login`/`logout`); the `role` is chosen at signup and the matching profile row is created immediately.
+- **Email verification:** `register` sends a signed link (`users/services.py`: `issue_email_verification` / `confirm_email_verification`, 3-day expiry) pointing at `/auth/verify?token=…` on the frontend. Dev uses the console email backend — the link prints to the runserver log. The Home screen shows a resend banner while `me.isVerified` is false.
+- **Google Sign-In:** the frontend renders the official GIS button when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is set and posts the ID token to `loginWithGoogle` (`users/services.py`: `login_with_google`, audience-checked against `GOOGLE_CLIENT_ID`). Existing users match by email; new users need the role from the auth screen's switch. Without the env vars the button stays disabled and the mutation returns "not configured". Apple login is **future work**.
 - **Vetting is a manual admin workflow, not automatic** — deliberately, per the concept.
   - Services: `backend/users/services.py` — `vet_student(profile, admin_user, vetted)` (sets/clears `is_vetted`, `vetted_at`, `vetted_by`) and `verify_sme(profile, admin_user, verified)` (refuses to verify a blank `ssm_number`).
   - GraphQL: `vetStudent` / `verifySme` mutations, `IsAdmin`-gated (superusers count as admins). These exist as the integration point for a future admin UI.
@@ -234,14 +236,14 @@ Enforced server-side in `backend/engagements/services.py` (`ALLOWED_TRANSITIONS`
 
 ## 11. Payments & Escrow — Read This Before Building It
 
-The current implementation is a **TEST-MODE stub**: `fund_escrow` marks the `Transaction` as `HELD` instantly with `payment_reference="TEST-MODE"`; no real money moves. Making it real involves two separate problems:
+The integration layer is built (`payments/gateway.py` + `payments/views.py`): `fundEscrow` returns a checkout URL, the user pays on the gateway's page, and the webhook (signature-verified) flips the `Transaction` from `PENDING` to `HELD` and writes the ledger rows — idempotently, with a retry path after failures. Two drivers exist: the **dev simulator** (default; a local checkout page with "simulate success/failure" buttons, exercising the exact same code path) and **Billplz** (sandbox by default; set `PAYMENT_GATEWAY=billplz` plus the `BILLPLZ_*` keys). No real money moves until Billplz keys are configured. Going live still involves two separate problems:
 
 1. **Technical:** charging a card/FPX, holding funds, releasing on approval, refunding on dispute.
 2. **Regulatory:** in Malaysia, holding client money in escrow is a regulated activity (Bank Negara Malaysia oversees money-services businesses and e-money). You generally do **not** want SkillBridge itself to custody business funds directly — sit on top of a licensed payment gateway or trust-account provider that already handles fund custody and compliance.
 
 Practical path:
-- **Next step:** collect payment via a gateway (Billplz, ToyyibPay, or CHIP all support Malaysian FPX/cards and have simple REST APIs) into the gateway's own held balance, keep recording state in `Transaction`/`LedgerEntry`, and gate the *release* step behind business approval + admin oversight — the model layer is already shaped for this.
-- **Later:** move to a marketplace/split-payment product (several of the above, plus Stripe Connect outside MY) that natively holds funds per transaction and releases to a connected student payout account.
+- **Next step:** obtain Billplz sandbox keys and flip `PAYMENT_GATEWAY=billplz` — the driver, webhook and ledger writes are already wired; the release step stays gated behind business approval + admin oversight.
+- **Later:** move to a marketplace/split-payment product (Billplz alternatives, plus Stripe Connect outside MY) that natively holds funds per transaction and releases to a connected student payout account; add refunds/disputes on top of the existing `REFUNDED` status.
 - Talk to a lawyer/licensed payment partner before advertising "escrow" publicly at scale — that's the one piece of this build that isn't just an engineering decision.
 
 ---
@@ -276,12 +278,12 @@ Plain Django `TestCase`, run from `backend/` with:
 python manage.py test
 ```
 
-- `payments/tests.py` — fee math (rounding edge cases), escrow can only be released once and only after funding.
+- `payments/tests.py` — fee math (rounding edge cases), escrow released once and only after funding, the gateway funding lifecycle (PENDING→HELD/FAILED, idempotent webhooks, retry-after-failure), the dev-checkout view's signature gate, Billplz X-Signature math.
 - `engagements/tests.py` — every disallowed transition raises; only the SME can complete.
 - `projects/tests.py` — reviews and rating recomputation.
-- `users/tests.py` + `api/tests.py` — vetting services and the admin-gated GraphQL mutations/`vettedOnly` filter.
+- `users/tests.py` + `api/tests.py` — vetting services, admin-gated GraphQL mutations/`vettedOnly` filter, email-verification tokens, and Google login (token verification mocked).
 
-These four areas (fee math, transitions, escrow integrity, vetting permissions) are the rules that must never silently break.
+These five areas (fee math, transitions, escrow integrity, vetting permissions, funding lifecycle) are the rules that must never silently break.
 
 ---
 
@@ -291,10 +293,24 @@ Dev needs **no** environment variables — SQLite and permissive defaults kick i
 
 ```bash
 # Postgres (optional — SQLite is the fallback)
-DB_NAME= DB_USER= DB_PASSWORD= DB_HOST= DB_PORT=
+POSTGRES_DB= POSTGRES_USER= POSTGRES_PASSWORD= POSTGRES_HOST= POSTGRES_PORT=
 
-# Future work
-# payment gateway keys (§11), S3/R2 credentials (§10), OAuth client ids (§9)
+# Cross-service URLs (defaults suit local dev)
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+
+# Payments (§11) — dev simulator needs nothing; Billplz sandbox needs:
+PAYMENT_GATEWAY=dev            # or: billplz
+BILLPLZ_API_KEY= BILLPLZ_COLLECTION_ID= BILLPLZ_XSIGNATURE_KEY=
+BILLPLZ_BASE_URL=https://www.billplz-sandbox.com
+
+# Auth (§9)
+GOOGLE_CLIENT_ID=              # backend audience check
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=  # frontend GIS button (frontend/.env.local)
+EMAIL_BACKEND=                 # default: console (dev)
+DEFAULT_FROM_EMAIL=
+
+# Future work: S3/R2 credentials (§10)
 ```
 
 CORS allows `http://localhost:3000` with credentials; adjust for staging/production domains. Never commit real secrets.
@@ -318,16 +334,18 @@ python manage.py seed_demo_data
 - [x] **Engagement flow:** Office screen, messages + attachments, server-enforced state machine
 - [x] **Money (test mode):** Transaction + LedgerEntry, Wallet screen, fee math, atomic approve-and-release
 - [x] **Vetting & trust:** vet/verify services + admin actions + GraphQL mutations, badges, vetted-only filter
-- [ ] **Real payments:** licensed Malaysian gateway integration (§11), refunds/disputes
+- [x] **Payment gateway layer:** redirect+webhook funding flow, dev simulator, Billplz driver (needs keys to go live), retry-after-failure
+- [x] **Auth extras:** Google Sign-In (needs client id to activate), email verification with resend banner
+- [ ] **Go live on payments:** Billplz sandbox → production keys, refunds/disputes flow (§11)
 - [ ] **Scale hardening:** S3/R2 presigned uploads, WebSockets chat, Postgres full-text search, Celery notifications
 - [ ] **Launch prep:** production settings, HTTPS, backups, Sentry, staging for the single-campus pilot
-- [ ] **Auth extras:** Google/Apple social login, email verification
+- [ ] **Auth extras:** Apple Sign-In (paid developer account required)
 
 ---
 
 ## 18. Remaining Work (short list)
 
-1. Payment gateway integration behind the existing `fund_escrow`/`approve_completion` seams (§11) — the only place real money enters the system.
+1. Go live on payments: Billplz sandbox keys → `PAYMENT_GATEWAY=billplz`, then a refunds/disputes flow (§11). The redirect+webhook layer is already built and tested.
 2. Presigned uploads to object storage for large Office attachments (§10).
-3. Social login + email verification (§9).
+3. Google Cloud OAuth client id to activate the existing Google Sign-In; Apple Sign-In later (§9).
 4. Admin-facing UI for vetting (the GraphQL mutations already exist; Django admin covers it today).

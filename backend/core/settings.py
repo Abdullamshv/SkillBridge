@@ -154,3 +154,16 @@ STATIC_URL = "static/"
 # django-storages + S3/R2 with presigned uploads (see README).
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Email — console backend in dev (verification links print to runserver logs);
+# point EMAIL_BACKEND/EMAIL_HOST_* at a real SMTP provider in production.
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "SkillBridge <no-reply@skillbridge.test>")
+
+# Cross-service URLs (emails link to the frontend; gateways call the backend)
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+
+# Google Sign-In — mutation stays disabled until GOOGLE_CLIENT_ID is set
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")

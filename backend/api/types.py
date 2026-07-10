@@ -281,6 +281,12 @@ class EngagementType:
 
 
 @strawberry.type
+class FundEscrowPayload:
+    transaction: TransactionType
+    checkout_url: str
+
+
+@strawberry.type
 class LedgerEntryType:
     id: strawberry.ID
     kind: str

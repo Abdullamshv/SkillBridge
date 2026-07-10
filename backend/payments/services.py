@@ -29,42 +29,105 @@ def calculate_student_payout(task_price: Decimal) -> Decimal:
     return task_price  # students keep 100%, always
 
 
-def fund_escrow(engagement):
-    """Fund the escrow hold for one engagement — test mode.
-
-    This is the payment-gateway integration point: a real gateway
-    (Billplz/ToyyibPay/CHIP) replaces the instant-success step here with a
-    redirect + webhook, but the Transaction/LedgerEntry writes stay identical.
-    """
-    from payments.models import LedgerEntry, Transaction
-
+def _escrow_amount(engagement):
     amount = engagement.agreed_price
     if amount is None and engagement.project_id:
         amount = engagement.project.budget
     if amount is None:
         raise ValueError("Agree on a price before funding escrow")
+    return amount
 
+
+def initiate_escrow_funding(engagement):
+    """Start funding: create (or reuse after a failure) the PENDING
+    Transaction and get a checkout URL from the gateway. No ledger writes
+    happen here — money only counts once the gateway confirms."""
+    from payments.gateway import get_gateway
+    from payments.models import Transaction
+
+    amount = _escrow_amount(engagement)
     fee = calculate_fee(amount)
     with db_transaction.atomic():
-        if Transaction.objects.filter(engagement=engagement).exists():
-            raise ValueError("Escrow is already funded for this engagement")
-        tx = Transaction.objects.create(
-            engagement=engagement,
-            amount=amount,
-            platform_fee=fee,
-            status=Transaction.Status.HELD,
-            payment_reference="TEST-MODE",
+        tx = (
+            Transaction.objects.select_for_update()
+            .filter(engagement=engagement)
+            .first()
         )
+        if tx is None:
+            tx = Transaction.objects.create(
+                engagement=engagement, amount=amount, platform_fee=fee,
+                status=Transaction.Status.PENDING,
+            )
+        elif tx.status in (Transaction.Status.PENDING, Transaction.Status.FAILED):
+            # Retry reuses the one-per-engagement row with a fresh amount.
+            tx.amount = amount
+            tx.platform_fee = fee
+            tx.status = Transaction.Status.PENDING
+            tx.payment_reference = ""
+            tx.save(update_fields=["amount", "platform_fee", "status", "payment_reference", "updated_at"])
+        else:
+            raise ValueError("Escrow is already funded for this engagement")
+
+    checkout_url = get_gateway().create_checkout(tx)
+    return tx, checkout_url
+
+
+def confirm_escrow_funding(tx, payment_reference=""):
+    """Gateway confirmed payment: PENDING→HELD plus the business's SPEND and
+    platform FEE ledger rows — exactly once. Re-delivered webhooks are no-ops."""
+    from payments.models import LedgerEntry, Transaction
+
+    with db_transaction.atomic():
+        tx = Transaction.objects.select_for_update().select_related(
+            "engagement", "engagement__sme", "engagement__sme__user"
+        ).get(pk=tx.pk)
+        if tx.status == Transaction.Status.HELD:
+            return tx  # idempotent — webhook retries are normal
+        if tx.status not in (Transaction.Status.PENDING, Transaction.Status.FAILED):
+            raise ValueError(f"Cannot confirm funding from status '{tx.status}'")
+        tx.status = Transaction.Status.HELD
+        if payment_reference:
+            tx.payment_reference = payment_reference
+        tx.save(update_fields=["status", "payment_reference", "updated_at"])
+
+        engagement = tx.engagement
         business_user = engagement.sme.user
         LedgerEntry.objects.create(
             user=business_user, engagement=engagement,
-            kind=LedgerEntry.Kind.SPEND, amount=amount + fee,
+            kind=LedgerEntry.Kind.SPEND, amount=tx.amount + tx.platform_fee,
         )
         LedgerEntry.objects.create(
             user=business_user, engagement=engagement,
-            kind=LedgerEntry.Kind.FEE, amount=fee,
+            kind=LedgerEntry.Kind.FEE, amount=tx.platform_fee,
         )
     return tx
+
+
+def fail_escrow_funding(tx):
+    """Gateway reported failure/cancellation: PENDING→FAILED. The business can
+    retry — initiate_escrow_funding reuses the row."""
+    from payments.models import Transaction
+
+    with db_transaction.atomic():
+        tx = Transaction.objects.select_for_update().get(pk=tx.pk)
+        if tx.status != Transaction.Status.PENDING:
+            raise ValueError(f"Cannot fail funding from status '{tx.status}'")
+        tx.status = Transaction.Status.FAILED
+        tx.save(update_fields=["status", "updated_at"])
+    return tx
+
+
+def fund_escrow(engagement):
+    """Instant initiate+confirm shortcut — used by tests and seed data, and
+    equivalent to what the dev gateway does when you click 'simulate success'."""
+    from payments.models import Transaction
+
+    if Transaction.objects.filter(
+        engagement=engagement, status=Transaction.Status.HELD
+    ).exists():
+        raise ValueError("Escrow is already funded for this engagement")
+    tx, _ = initiate_escrow_funding(engagement)
+    return confirm_escrow_funding(tx, payment_reference="TEST-MODE")
 
 
 def release_escrow(engagement):
