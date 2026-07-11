@@ -14,8 +14,13 @@ import os
 
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Loads backend/.env into os.environ (keys/secrets never get hardcoded here).
+load_dotenv(BASE_DIR / ".env")
 
 
 # Environment-driven settings — dev-friendly defaults, overridable in prod.

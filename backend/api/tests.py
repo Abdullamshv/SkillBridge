@@ -1,6 +1,6 @@
 import json
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from users.models import SMEProfile, StudentProfile, User
 
@@ -140,6 +140,7 @@ class AuthMutationTests(GraphQLTestCase):
         data = self.gql(self.VERIFY, {"t": "garbage"})
         self.assertIn("Invalid verification link", str(data["errors"]))
 
+    @override_settings(GOOGLE_CLIENT_ID="")
     def test_login_with_google_unconfigured(self):
         data = self.gql(self.GOOGLE)
         self.assertIn("not configured", str(data["errors"]))
