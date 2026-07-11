@@ -206,8 +206,38 @@ export default function ProfileDetailPage({
               />
             </dl>
           </Card>
+
+          {(student.linkedinUrl || student.portfolioUrl) && (
+            <Card className="p-5">
+              <h3 className="text-sm font-extrabold text-ink">Portfolio</h3>
+              <div className="mt-3 space-y-2.5 text-sm">
+                {student.linkedinUrl && (
+                  <PortfolioLink label="LinkedIn" href={student.linkedinUrl} />
+                )}
+                {student.portfolioUrl && (
+                  <PortfolioLink label="Website" href={student.portfolioUrl} />
+                )}
+              </div>
+            </Card>
+          )}
         </aside>
       </div>
+    </div>
+  );
+}
+
+function PortfolioLink({ label, href }: { label: string; href: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-xs font-semibold text-muted">{label}</span>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="max-w-[180px] truncate text-right text-sm font-bold text-brand hover:text-brand-light"
+      >
+        {href.replace(/^https?:\/\/(www\.)?/, "")}
+      </a>
     </div>
   );
 }

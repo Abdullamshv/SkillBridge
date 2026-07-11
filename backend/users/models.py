@@ -39,6 +39,8 @@ class StudentProfile(models.Model):
     skills          = models.JSONField(default=list)
     bio             = models.TextField(blank=True)
     portfolio_url   = models.URLField(blank=True)
+    linkedin_url    = models.URLField(blank=True)
+    resume          = models.FileField(upload_to="resumes/", blank=True)
     languages       = models.CharField(max_length=120, blank=True)  # "BM · EN"
     price_low       = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     price_high      = models.DecimalField(max_digits=8, decimal_places=2, default=0)

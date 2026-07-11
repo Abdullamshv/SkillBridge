@@ -43,3 +43,46 @@ def upload_attachment(request, engagement_id: int):
         size_bytes=upload.size,
     )
     return JsonResponse({"ok": True, "messageId": message.id})
+
+
+MAX_RESUME_BYTES = 10 * 1024 * 1024
+
+
+@csrf_exempt  # session-authenticated, same posture as /graphql/
+@require_POST
+def upload_resume(request):
+    """Store a student's resume and return heuristic profile-field suggestions
+    so the /profile form can autofill. PDF or plain-text, 10 MB cap."""
+    from users.models import StudentProfile
+    from users.services import parse_resume_text
+
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=403)
+    if request.user.role != "student":
+        return JsonResponse({"error": "Student role required"}, status=403)
+
+    upload = request.FILES.get("file")
+    if upload is None:
+        return JsonResponse({"error": "No file provided"}, status=400)
+    if upload.size > MAX_RESUME_BYTES:
+        return JsonResponse({"error": "File exceeds the 10 MB limit"}, status=400)
+
+    name = (upload.name or "").lower()
+    if name.endswith(".pdf"):
+        try:
+            from pypdf import PdfReader
+
+            reader = PdfReader(upload)
+            text = "\n\n".join((page.extract_text() or "") for page in reader.pages)
+        except Exception:
+            return JsonResponse({"error": "Could not read this PDF"}, status=400)
+    elif name.endswith(".txt"):
+        text = upload.read().decode("utf-8", errors="ignore")
+    else:
+        return JsonResponse({"error": "Upload a PDF or TXT resume"}, status=400)
+
+    profile, _ = StudentProfile.objects.get_or_create(user=request.user)
+    upload.seek(0)
+    profile.resume.save(upload.name, upload, save=True)
+
+    return JsonResponse({"ok": True, "suggestions": parse_resume_text(text)})

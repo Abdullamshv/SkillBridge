@@ -158,6 +158,7 @@ class Mutation:
         skills: Optional[List[str]] = None,
         bio: Optional[str] = None,
         portfolio_url: Optional[str] = None,
+        linkedin_url: Optional[str] = None,
         languages: Optional[str] = None,
         price_low: Optional[str] = None,
         price_high: Optional[str] = None,
@@ -183,6 +184,8 @@ class Mutation:
             profile.bio = bio
         if portfolio_url is not None:
             profile.portfolio_url = portfolio_url
+        if linkedin_url is not None:
+            profile.linkedin_url = linkedin_url
         if languages is not None:
             profile.languages = languages
         if price_low is not None:

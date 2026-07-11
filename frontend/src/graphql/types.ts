@@ -145,6 +145,7 @@ export type StudentDetail = StudentSummary & {
   graduationYear: number;
   bio: string;
   portfolioUrl: string;
+  linkedinUrl: string;
   languages: string;
   vettedAt: string | null;
   reviews: Review[];
@@ -253,3 +254,70 @@ export type WalletStats = {
 };
 
 export type WalletStatsData = { walletStats: WalletStats };
+
+export type MyStudentProfile = {
+  id: string;
+  university: string;
+  major: string;
+  graduationYear: number;
+  primaryCategory: string;
+  skills: string[];
+  bio: string;
+  portfolioUrl: string;
+  linkedinUrl: string;
+  languages: string;
+  priceLow: string;
+  priceHigh: string;
+  availabilityStatus: string;
+  availableFrom: string | null;
+};
+export type MyStudentProfileData = { myStudentProfile: MyStudentProfile };
+
+export type MySmeProfile = {
+  id: string;
+  companyName: string;
+  industry: string;
+  location: string;
+  website: string;
+  description: string;
+  ssmNumber: string;
+  isVerified: boolean;
+};
+export type MySmeProfileData = { mySmeProfile: MySmeProfile };
+
+export type UpdateStudentProfileVars = {
+  university?: string;
+  major?: string;
+  graduationYear?: number;
+  primaryCategory?: string;
+  skills?: string[];
+  bio?: string;
+  portfolioUrl?: string;
+  linkedinUrl?: string;
+  languages?: string;
+  priceLow?: string;
+  priceHigh?: string;
+  availabilityStatus?: string;
+  availableFrom?: string;
+};
+export type UpdateStudentProfileData = { updateStudentProfile: MyStudentProfile };
+
+export type UpdateSmeProfileVars = {
+  companyName?: string;
+  industry?: string;
+  location?: string;
+  website?: string;
+  description?: string;
+  ssmNumber?: string;
+};
+export type UpdateSmeProfileData = { updateSmeProfile: MySmeProfile };
+
+export type ResumeSuggestions = {
+  university?: string;
+  graduation_year?: number;
+  skills?: string[];
+  languages?: string;
+  linkedin_url?: string;
+  portfolio_url?: string;
+  bio?: string;
+};

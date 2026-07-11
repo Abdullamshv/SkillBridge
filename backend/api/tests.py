@@ -153,3 +153,71 @@ class AuthMutationTests(GraphQLTestCase):
         data = self.gql("mutation { resendVerification }")
         self.assertTrue(data["data"]["resendVerification"])
         self.assertEqual(len(mail.outbox), 1)
+
+
+class ProfileApiTests(GraphQLTestCase):
+    MY_PROFILE = "query { myStudentProfile { id university linkedinUrl } }"
+    UPDATE = """
+    mutation ($li: String) {
+      updateStudentProfile(linkedinUrl: $li, university: "UM") { linkedinUrl university }
+    }
+    """
+
+    def setUp(self):
+        self.student = User.objects.create_user(username="stu", password="x", role="student")
+        self.sme = User.objects.create_user(username="biz", password="x", role="sme")
+
+    def test_my_student_profile_requires_student(self):
+        data = self.gql(self.MY_PROFILE)
+        self.assertIn("Student role required", str(data["errors"]))
+        self.client.force_login(self.sme)
+        data = self.gql(self.MY_PROFILE)
+        self.assertIn("Student role required", str(data["errors"]))
+
+    def test_my_student_profile_creates_and_returns(self):
+        self.client.force_login(self.student)
+        data = self.gql(self.MY_PROFILE)
+        self.assertNotIn("errors", data)
+        self.assertTrue(StudentProfile.objects.filter(user=self.student).exists())
+
+    def test_update_profile_saves_linkedin(self):
+        self.client.force_login(self.student)
+        data = self.gql(self.UPDATE, {"li": "https://linkedin.com/in/stu"})
+        self.assertNotIn("errors", data)
+        self.assertEqual(
+            data["data"]["updateStudentProfile"]["linkedinUrl"], "https://linkedin.com/in/stu"
+        )
+
+    def _upload(self, **kwargs):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        f = SimpleUploadedFile(
+            kwargs.get("name", "resume.txt"),
+            kwargs.get(
+                "content",
+                b"Student at Sunway University, graduating 2027. Skills: Figma, React. "
+                b"Languages: English, Malay. linkedin.com/in/stu-test",
+            ),
+        )
+        return self.client.post("/api/profile/resume/", {"file": f})
+
+    def test_resume_upload_requires_student(self):
+        self.assertEqual(self._upload().status_code, 403)
+        self.client.force_login(self.sme)
+        self.assertEqual(self._upload().status_code, 403)
+
+    def test_resume_upload_returns_suggestions_and_saves_file(self):
+        self.client.force_login(self.student)
+        response = self._upload()
+        self.assertEqual(response.status_code, 200)
+        suggestions = response.json()["suggestions"]
+        self.assertIn("Sunway University", suggestions["university"])
+        self.assertEqual(suggestions["graduation_year"], 2027)
+        self.assertIn("Figma", suggestions["skills"])
+        profile = StudentProfile.objects.get(user=self.student)
+        self.assertTrue(profile.resume.name)
+        profile.resume.delete(save=False)
+
+    def test_resume_upload_rejects_unknown_extension(self):
+        self.client.force_login(self.student)
+        self.assertEqual(self._upload(name="resume.docx").status_code, 400)

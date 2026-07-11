@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.core import signing
 from django.core.mail import send_mail
@@ -86,7 +88,7 @@ def _verify_google_token(id_token_value: str) -> dict:
 
     try:
         return google_id_token.verify_oauth2_token(
-            id_token_value, google_requests.Request(), settings.GOOGLE_CLIENT_ID, clock_sceew_in_seconds = 10
+            id_token_value, google_requests.Request(), settings.GOOGLE_CLIENT_ID, clock_skew_in_seconds=10
         )
     except Exception as exc:
         raise ValueError("Google sign-in failed — invalid token") from exc
@@ -129,3 +131,79 @@ def login_with_google(id_token_value: str, role: str | None = None):
     else:
         SMEProfile.objects.create(user=user)
     return user
+
+
+# ── Resume parsing (profile autofill) ─────────────────────────────────────
+
+# Heuristic keyword catalogs — no external APIs, good enough to pre-fill a
+# form the student then reviews before saving.
+_SKILL_KEYWORDS = [
+    "Figma", "Photoshop", "Illustrator", "Canva", "UI/UX", "Branding",
+    "Copywriting", "Content Writing", "Proofreading", "Translation",
+    "Social Media", "Instagram", "TikTok", "Facebook Ads", "Google Ads", "SEO",
+    "React", "Next.js", "Vue", "JavaScript", "TypeScript", "Python", "Django",
+    "Node.js", "HTML", "CSS", "Tailwind", "WordPress", "Shopify",
+    "SQL", "Excel", "Power BI", "Tableau", "Data Analysis", "Machine Learning",
+    "Video Editing", "Premiere Pro", "After Effects", "CapCut", "Animation",
+]
+
+_LANGUAGE_MAP = [
+    (("english",), "EN"),
+    (("malay", "bahasa melayu", "bahasa malaysia"), "BM"),
+    (("mandarin", "chinese", "中文"), "中文"),
+    (("tamil", "தமிழ்"), "தமிழ்"),
+    (("arabic", "العربية"), "العربية"),
+]
+
+# Capitalised words only around the keyword, so prose like "student at ..."
+# doesn't leak into the captured name.
+_UNIVERSITY_RE = re.compile(
+    r"\b((?:[A-Z][\w'&.\-]*\s+){0,4}(?:University|Universiti|College)(?:\s+(?:of|[A-Z][\w'&.\-]*)){0,3})"
+)
+_YEAR_RE = re.compile(r"\b(20[2-4]\d)\b")
+_LINKEDIN_RE = re.compile(r"(?:https?://)?(?:www\.)?linkedin\.com/in/[\w\-%.]+", re.IGNORECASE)
+_URL_RE = re.compile(r"https?://[^\s<>\"')]+", re.IGNORECASE)
+
+
+def parse_resume_text(text: str) -> dict:
+    """Extract profile-field suggestions from raw resume text. Every value is
+    best-effort; the frontend only fills fields the student left empty."""
+    suggestions: dict = {}
+
+    m = _UNIVERSITY_RE.search(text)
+    if m:
+        suggestions["university"] = m.group(1).strip()
+
+    years = [int(y) for y in _YEAR_RE.findall(text)]
+    if years:
+        suggestions["graduation_year"] = max(years)
+
+    lowered = text.lower()
+    skills = [s for s in _SKILL_KEYWORDS if s.lower() in lowered]
+    if skills:
+        suggestions["skills"] = skills[:10]
+
+    langs = [code for keywords, code in _LANGUAGE_MAP if any(k in lowered for k in keywords)]
+    if langs:
+        suggestions["languages"] = " · ".join(langs)
+
+    m = _LINKEDIN_RE.search(text)
+    if m:
+        url = m.group(0)
+        if not url.startswith("http"):
+            url = f"https://{url}"
+        suggestions["linkedin_url"] = url
+
+    for url in _URL_RE.findall(text):
+        if "linkedin.com" not in url.lower():
+            suggestions["portfolio_url"] = url.rstrip(".,;")
+            break
+
+    # Bio: first prose paragraph (skip short header lines like name/contacts)
+    for para in (p.strip() for p in text.split("\n\n")):
+        line = " ".join(para.split())
+        if len(line) >= 80 and not _URL_RE.search(line):
+            suggestions["bio"] = line[:600]
+            break
+
+    return suggestions

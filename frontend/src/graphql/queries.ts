@@ -3,6 +3,8 @@ import type {
   EngagementsData,
   MeData,
   MyProjectsData,
+  MySmeProfileData,
+  MyStudentProfileData,
   NoVars,
   ProjectData,
   ProjectsData,
@@ -188,6 +190,7 @@ export const GET_STUDENT: TypedDocumentNode<StudentData, StudentVars> = gql`
       skills
       bio
       portfolioUrl
+      linkedinUrl
       languages
       priceLow
       priceHigh
@@ -286,6 +289,42 @@ export const GET_WALLET_STATS: TypedDocumentNode<WalletStatsData, NoVars> = gql`
         label
         value
       }
+    }
+  }
+`;
+
+export const MY_STUDENT_PROFILE: TypedDocumentNode<MyStudentProfileData, NoVars> = gql`
+  query MyStudentProfile {
+    myStudentProfile {
+      id
+      university
+      major
+      graduationYear
+      primaryCategory
+      skills
+      bio
+      portfolioUrl
+      linkedinUrl
+      languages
+      priceLow
+      priceHigh
+      availabilityStatus
+      availableFrom
+    }
+  }
+`;
+
+export const MY_SME_PROFILE: TypedDocumentNode<MySmeProfileData, NoVars> = gql`
+  query MySmeProfile {
+    mySmeProfile {
+      id
+      companyName
+      industry
+      location
+      website
+      description
+      ssmNumber
+      isVerified
     }
   }
 `;

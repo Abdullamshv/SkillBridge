@@ -16,7 +16,7 @@ export function Navbar() {
 
   async function handleLogout() {
     await logout();
-    await client.resetStore();
+    await client.clearStore();
     router.push("/");
   }
 
@@ -56,9 +56,16 @@ export function Navbar() {
         <div className="ml-auto flex items-center gap-3">
           {loading ? null : user ? (
             <>
-              <span className="text-sm font-semibold text-muted">
-                {user.username} · {user.role === "sme" ? "Business" : "Student"}
-              </span>
+              <Link
+                href="/profile"
+                className={`rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
+                  pathname.startsWith("/profile")
+                    ? "border-brand bg-brand-tint text-brand"
+                    : "border-border bg-white text-ink hover:bg-brand-tint"
+                }`}
+              >
+                Profile
+              </Link>
               <button
                 onClick={handleLogout}
                 className="rounded-full border border-border bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-brand-tint"

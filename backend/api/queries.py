@@ -5,6 +5,7 @@ import strawberry
 from .types import (
     EngagementType,
     ProjectType,
+    SMEProfileType,
     StudentProfileType,
     UserType,
     WalletStatsType,
@@ -20,6 +21,26 @@ class Query:
         if not user.is_authenticated:
             return None
         return UserType.from_model(user)
+
+    @strawberry.field
+    def my_student_profile(self, info: strawberry.types.Info) -> StudentProfileType:
+        from users.models import StudentProfile
+
+        user = info.context.request.user
+        if not user.is_authenticated or user.role != "student":
+            raise PermissionError("Student role required")
+        profile, _ = StudentProfile.objects.get_or_create(user=user)
+        return StudentProfileType.from_model(profile)
+
+    @strawberry.field
+    def my_sme_profile(self, info: strawberry.types.Info) -> SMEProfileType:
+        from users.models import SMEProfile
+
+        user = info.context.request.user
+        if not user.is_authenticated or user.role != "sme":
+            raise PermissionError("SME role required")
+        profile, _ = SMEProfile.objects.get_or_create(user=user)
+        return SMEProfileType.from_model(profile)
 
     # ── Tasks (Student Home / Task Detail) ──────────────────────────────────
 

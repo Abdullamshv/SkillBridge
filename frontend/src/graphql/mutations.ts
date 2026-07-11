@@ -29,6 +29,10 @@ import type {
   UnsaveTaskData,
   UpdateProjectStatusData,
   UpdateProjectStatusVars,
+  UpdateSmeProfileData,
+  UpdateSmeProfileVars,
+  UpdateStudentProfileData,
+  UpdateStudentProfileVars,
   VerifyEmailData,
   VerifyEmailVars,
 } from "./types";
@@ -204,6 +208,90 @@ export const SUBMIT_REVIEW: TypedDocumentNode<SubmitReviewData, SubmitReviewVars
     submitReview(engagementId: $engagementId, rating: $rating, comment: $comment) {
       id
       rating
+    }
+  }
+`;
+
+export const UPDATE_STUDENT_PROFILE: TypedDocumentNode<
+  UpdateStudentProfileData,
+  UpdateStudentProfileVars
+> = gql`
+  mutation UpdateStudentProfile(
+    $university: String
+    $major: String
+    $graduationYear: Int
+    $primaryCategory: String
+    $skills: [String!]
+    $bio: String
+    $portfolioUrl: String
+    $linkedinUrl: String
+    $languages: String
+    $priceLow: String
+    $priceHigh: String
+    $availabilityStatus: String
+    $availableFrom: Date
+  ) {
+    updateStudentProfile(
+      university: $university
+      major: $major
+      graduationYear: $graduationYear
+      primaryCategory: $primaryCategory
+      skills: $skills
+      bio: $bio
+      portfolioUrl: $portfolioUrl
+      linkedinUrl: $linkedinUrl
+      languages: $languages
+      priceLow: $priceLow
+      priceHigh: $priceHigh
+      availabilityStatus: $availabilityStatus
+      availableFrom: $availableFrom
+    ) {
+      id
+      university
+      major
+      graduationYear
+      primaryCategory
+      skills
+      bio
+      portfolioUrl
+      linkedinUrl
+      languages
+      priceLow
+      priceHigh
+      availabilityStatus
+      availableFrom
+    }
+  }
+`;
+
+export const UPDATE_SME_PROFILE: TypedDocumentNode<
+  UpdateSmeProfileData,
+  UpdateSmeProfileVars
+> = gql`
+  mutation UpdateSmeProfile(
+    $companyName: String
+    $industry: String
+    $location: String
+    $website: String
+    $description: String
+    $ssmNumber: String
+  ) {
+    updateSmeProfile(
+      companyName: $companyName
+      industry: $industry
+      location: $location
+      website: $website
+      description: $description
+      ssmNumber: $ssmNumber
+    ) {
+      id
+      companyName
+      industry
+      location
+      website
+      description
+      ssmNumber
+      isVerified
     }
   }
 `;

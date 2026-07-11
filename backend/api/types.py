@@ -57,6 +57,7 @@ class StudentProfileType:
     skills: List[str]
     bio: str
     portfolio_url: str
+    linkedin_url: str
     languages: str
     price_low: str
     price_high: str
@@ -80,6 +81,7 @@ class StudentProfileType:
             skills=list(profile.skills) if profile.skills else [],
             bio=profile.bio,
             portfolio_url=profile.portfolio_url,
+            linkedin_url=profile.linkedin_url,
             languages=profile.languages,
             price_low=str(profile.price_low),
             price_high=str(profile.price_high),

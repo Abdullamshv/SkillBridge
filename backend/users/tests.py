@@ -154,3 +154,61 @@ class GoogleLoginTests(TestCase):
         User.objects.create_user(username="aisyah", password="x", role="sme", email="other@x.my")
         user = login_with_google("tok", role="student")
         self.assertEqual(user.username, "aisyah2")
+
+
+class ResumeParserTests(TestCase):
+    SAMPLE = (
+        "Daniel Lim\n"
+        "daniel@siswa.um.edu.my · linkedin.com/in/daniel-lim · https://daniellim.dev\n\n"
+        "Final-year computer science student at Sunway University with a passion for "
+        "building clean web interfaces and data-driven products for Malaysian SMEs.\n\n"
+        "EDUCATION\n"
+        "Sunway University — BSc Computer Science, expected graduation 2028\n\n"
+        "SKILLS\n"
+        "React, TypeScript, Python, Figma, SEO\n\n"
+        "LANGUAGES\n"
+        "English, Bahasa Melayu, Mandarin\n"
+    )
+
+    def test_extracts_university(self):
+        from .services import parse_resume_text
+
+        s = parse_resume_text(self.SAMPLE)
+        self.assertIn("Sunway University", s["university"])
+
+    def test_extracts_graduation_year(self):
+        from .services import parse_resume_text
+
+        self.assertEqual(parse_resume_text(self.SAMPLE)["graduation_year"], 2028)
+
+    def test_extracts_skills(self):
+        from .services import parse_resume_text
+
+        skills = parse_resume_text(self.SAMPLE)["skills"]
+        for expected in ("React", "TypeScript", "Python", "Figma", "SEO"):
+            self.assertIn(expected, skills)
+
+    def test_extracts_languages(self):
+        from .services import parse_resume_text
+
+        langs = parse_resume_text(self.SAMPLE)["languages"]
+        self.assertIn("EN", langs)
+        self.assertIn("BM", langs)
+        self.assertIn("中文", langs)
+
+    def test_extracts_linkedin_and_portfolio(self):
+        from .services import parse_resume_text
+
+        s = parse_resume_text(self.SAMPLE)
+        self.assertEqual(s["linkedin_url"], "https://linkedin.com/in/daniel-lim")
+        self.assertEqual(s["portfolio_url"], "https://daniellim.dev")
+
+    def test_extracts_bio_paragraph(self):
+        from .services import parse_resume_text
+
+        self.assertIn("Final-year computer science student", parse_resume_text(self.SAMPLE)["bio"])
+
+    def test_empty_text_returns_empty_dict(self):
+        from .services import parse_resume_text
+
+        self.assertEqual(parse_resume_text(""), {})

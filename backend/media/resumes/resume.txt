@@ -1,0 +1,13 @@
+Test Student
+test@siswa.um.edu.my · linkedin.com/in/test-student · https://teststudent.my
+
+Second-year data science student at Universiti Malaya who loves turning spreadsheets into clear dashboards for small businesses across the Klang Valley region.
+
+EDUCATION
+Universiti Malaya — BSc Data Science, expected graduation 2029
+
+SKILLS
+Excel, Power BI, Python, SQL, Tableau
+
+LANGUAGES
+English, Malay, Tamil
