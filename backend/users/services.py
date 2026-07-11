@@ -59,9 +59,11 @@ def issue_email_verification(user) -> None:
 def confirm_email_verification(token: str):
     """Verify the signed token and mark the user's email as confirmed."""
     try:
-        payload = signing.loads(token, salt=EMAIL_VERIFY_SALT, max_age=EMAIL_VERIFY_MAX_AGE)
+        payload = signing.loads(
+            token, salt=EMAIL_VERIFY_SALT, max_age=EMAIL_VERIFY_MAX_AGE)
     except signing.SignatureExpired as exc:
-        raise ValueError("This verification link has expired — request a new one") from exc
+        raise ValueError(
+            "This verification link has expired — request a new one") from exc
     except signing.BadSignature as exc:
         raise ValueError("Invalid verification link") from exc
     user = User.objects.get(pk=payload["uid"])
@@ -84,7 +86,7 @@ def _verify_google_token(id_token_value: str) -> dict:
 
     try:
         return google_id_token.verify_oauth2_token(
-            id_token_value, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+            id_token_value, google_requests.Request(), settings.GOOGLE_CLIENT_ID, clock_sceew_in_seconds = 10
         )
     except Exception as exc:
         raise ValueError("Google sign-in failed — invalid token") from exc
@@ -112,7 +114,8 @@ def login_with_google(id_token_value: str, role: str | None = None):
         return user
 
     if role not in ("student", "sme"):
-        raise ValueError("Choose a role (student or business) to finish signing up")
+        raise ValueError(
+            "Choose a role (student or business) to finish signing up")
     user = User.objects.create_user(
         username=_unique_username(email.split("@")[0]),
         email=email,
