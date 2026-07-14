@@ -17,7 +17,20 @@
       "Bash(rm \"/Users/dopflw/Desktop/Skills_Bridge /frontend/public/icons/cap.webp\")",
       "Bash(python3 -c ' *)",
       "Bash(curl -s http://localhost:3000/)",
-      "Bash(curl -s \"http://localhost:3000/_next/static/chunks/%5Broot-of-the-server%5D__1m-c3_j._.css\")"
+      "Bash(curl -s \"http://localhost:3000/_next/static/chunks/%5Broot-of-the-server%5D__1m-c3_j._.css\")",
+      "Bash(lsof -nP -iTCP:8000 -sTCP:LISTEN)",
+      "Bash(curl -s -X POST http://localhost:8000/graphql/ -H \"Content-Type: application/json\" -d '{\"query\":\"mutation { register\\(username: \\\\\"testuser99\\\\\", email: \\\\\"test99@siswa.um.edu.my\\\\\", password: \\\\\"testpass123\\\\\", role: \\\\\"student\\\\\"\\) { user { id username } } }\"}' -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://localhost:8000/graphql/ -H \"Content-Type: application/json\" -d '{\"query\":\"mutation { register\\(username: \\\\\"testuser99\\\\\", email: \\\\\"test99@siswa.um.edu.my\\\\\", password: \\\\\"testpass123\\\\\", role: \\\\\"student\\\\\"\\) { id username email role isVerified } }\"}' -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://localhost:8000/graphql/ -H \"Content-Type: application/json\" -d '{\"query\":\"mutation { register\\(username: \\\\\"testuser99\\\\\", email: \\\\\"test99@siswa.um.edu.my\\\\\", password: \\\\\"testpass123\\\\\", role: \\\\\"student\\\\\"\\) { id username } }\"}' -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://localhost:8000/graphql/ -H \"Content-Type: application/json\" -H \"Origin: http://localhost:3000\" -d '{\"query\":\"mutation { login\\(username: \\\\\"testuser99\\\\\", password: \\\\\"testpass123\\\\\"\\) { id username } }\"}' -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://localhost:8000/graphql/ -H \"Content-Type: application/json\" -H \"Origin: http://localhost:3000\" -H \"Referer: http://localhost:3000/\" -d '{\"query\":\"mutation { register\\(username: \\\\\"testuser100\\\\\", email: \\\\\"t100@siswa.um.edu.my\\\\\", password: \\\\\"testpass123\\\\\", role: \\\\\"student\\\\\"\\) { id } }\"}' -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://localhost:8000/graphql -H \"Content-Type: application/json\" -d '{\"query\":\"{ __typename }\"}' -w \"\\\\nHTTP %{http_code}\\\\n\" -o /dev/null)",
+      "Bash(curl -s -X POST http://localhost:8000/graphql -H \"Content-Type: application/json\" -d '{\"query\":\"{ __typename }\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/graphql -H \"Content-Type: application/json\" -d '{\"query\":\"{ __typename }\"}' -w \"\\\\nHTTP %{http_code}\\\\n\")"
+    ],
+    "additionalDirectories": [
+      "/Users/dopflw/Desktop/Skills_Bridge /frontend",
+      "/Users/dopflw/Desktop/Skills_Bridge /backend/core"
     ]
   }
 }

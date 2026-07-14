@@ -29,6 +29,9 @@ from payments.views import dev_checkout, payment_webhook
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("graphql/", csrf_exempt(GraphQLView.as_view(schema=schema))),
+    # Alias without the trailing slash: APPEND_SLASH can't redirect POST
+    # bodies, so a slashless client URL would otherwise 500.
+    path("graphql", csrf_exempt(GraphQLView.as_view(schema=schema))),
     path("api/upload/<int:engagement_id>/", upload_attachment),
     path("api/profile/resume/", upload_resume),
     path("api/payments/dev-checkout/<int:tx_id>/", dev_checkout),
