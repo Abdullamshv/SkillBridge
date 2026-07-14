@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -o -E '^[^:]+:[0-9]+:.{0,90}')",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\(require\\('@splinetool/react-spline/package.json'\\).version, require\\('@splinetool/runtime/package.json'\\).version\\)\")",
+      "Bash(curl -s \"https://api.github.com/repos/realvjy/3dicons/contents/\")",
+      "Bash(curl -s \"https://3dicons.co/\")",
+      "Bash(rm \"/Users/dopflw/Desktop/Skills_Bridge /frontend/src/components/Icon3D.tsx\")",
+      "Bash(npm uninstall *)",
+      "Bash(curl -s -o /dev/null -w \"landing: %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"icon: %{http_code}\\\\n\" http://localhost:3000/icons/wallet.webp)"
+    ]
+  }
+}

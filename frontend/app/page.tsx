@@ -11,31 +11,31 @@ const STATS = [
 const FLOATING_PILLS = [
   { icon: "🛡", label: "Safe escrow payments", className: "right-0 top-2" },
   { icon: "🎓", label: "Campus-vetted talent", className: "left-4 top-20" },
-  { icon: "💸", label: "100% payout for students", className: "right-6 top-40" },
-  { icon: "％", label: "Flat 2% fee, nothing hidden", className: "left-0 bottom-6" },
+  { icon: "💸", label: "100% payout for students", className: "right-6 top-56" },
+  { icon: "％", label: "Flat 2% fee, nothing hidden", className: "left-14 bottom-4" },
 ];
 
 const HOW_IT_WORKS = [
   {
-    icon: "👤",
+    icon: "/icons/profile.webp",
     tint: "bg-brand-tint",
     title: "Create your profile",
     text: "Students verify with a campus email; businesses with an SSM number. Trust on both sides, day one.",
   },
   {
-    icon: "🔍",
+    icon: "/icons/target.webp",
     tint: "bg-accent-tint",
     title: "Match on a task",
     text: "Students browse paid tasks; businesses browse vetted talent. Either side can reach out first.",
   },
   {
-    icon: "💬",
+    icon: "/icons/chat.webp",
     tint: "bg-brand-tint",
     title: "Chat & deliver in Office",
     text: "Messages, drafts and big files stay in one thread, with a clear status from reach-out to done.",
   },
   {
-    icon: "✅",
+    icon: "/icons/wallet.webp",
     tint: "bg-success-tint",
     title: "Get paid — keep 100%",
     text: "Escrow releases when work is approved. Students keep every ringgit; businesses pay a flat 2%.",
@@ -80,7 +80,7 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero */}
-      <main className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-6 py-16 lg:grid-cols-[1.1fr_1fr] lg:py-24">
+      <main className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 overflow-x-clip px-6 py-16 lg:grid-cols-[1.1fr_1fr] lg:py-24">
         <div>
           <span className="inline-block rounded-full bg-brand-tint px-3.5 py-1.5 text-xs font-bold text-brand">
             ✦ Malaysia&apos;s campus talent marketplace
@@ -121,11 +121,24 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Floating trust pills over a soft gradient blob */}
+        {/* Floating trust pills over the hero gradient orb */}
         <div className="relative hidden h-[380px] lg:block" aria-hidden>
+          {/* soft ambient wash spilling beyond the orb */}
           <div
-            className="absolute inset-6 rounded-full opacity-70 blur-2xl"
-            style={{ background: "linear-gradient(135deg,#ECEAFC 0%,#E4E9FA 55%,#FDEEDE 100%)" }}
+            className="absolute -inset-2 rounded-full opacity-60 blur-3xl"
+            style={{ background: "linear-gradient(135deg,#ECEAFC 0%,#EAE7FA 45%,#FBE6D4 100%)" }}
+          />
+          {/* the orb: large circle with a crisp edge and warm glow */}
+          <div
+            className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              border: "1.5px solid rgba(124,98,242,0.16)",
+              background:
+                "radial-gradient(circle at 42% 72%, rgba(249,183,140,0.42) 0%, rgba(249,183,140,0.14) 38%, rgba(249,183,140,0) 62%), " +
+                "radial-gradient(circle at 74% 22%, rgba(123,98,242,0.10) 0%, rgba(123,98,242,0) 55%), " +
+                "radial-gradient(circle at 38% 30%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 65%)",
+              boxShadow: "inset 0 -60px 90px rgba(249,183,140,0.16)",
+            }}
           />
           {FLOATING_PILLS.map((p) => (
             <TrustPill key={p.label} icon={p.icon} label={p.label} className={`absolute ${p.className}`} />
@@ -152,10 +165,11 @@ export default function LandingPage() {
             {HOW_IT_WORKS.map((step) => (
               <div key={step.title} className="rounded-2xl border border-border/70 p-5">
                 <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg ${step.tint}`}
+                  className={`flex h-14 w-14 items-center justify-center rounded-xl ${step.tint}`}
                   aria-hidden
                 >
-                  {step.icon}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={step.icon} alt="" className="h-11 w-11 object-contain" />
                 </span>
                 <h3 className="mt-3 text-sm font-extrabold text-ink">{step.title}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted">{step.text}</p>
@@ -169,9 +183,13 @@ export default function LandingPage() {
       <section className="px-6 pb-16">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-3xl bg-white p-8 shadow-card">
-            <span className="inline-block rounded-full bg-brand-tint px-3 py-1 text-[11px] font-extrabold tracking-wide text-brand">
-              FOR STUDENTS
-            </span>
+            <div className="flex items-start justify-between">
+              <span className="inline-block rounded-full bg-brand-tint px-3 py-1 text-[11px] font-extrabold tracking-wide text-brand">
+                FOR STUDENTS
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/card.webp" alt="" aria-hidden className="-mt-2 h-14 w-14 object-contain" />
+            </div>
             <h3 className="mt-4 text-xl font-extrabold text-ink">Earn before you graduate</h3>
             <ul className="mt-4 space-y-2.5">
               {STUDENT_POINTS.map((p) => (
@@ -183,9 +201,13 @@ export default function LandingPage() {
             </Button>
           </div>
           <div className="rounded-3xl bg-white p-8 shadow-card">
-            <span className="inline-block rounded-full bg-accent-tint px-3 py-1 text-[11px] font-extrabold tracking-wide text-accent-dark">
-              FOR BUSINESSES
-            </span>
+            <div className="flex items-start justify-between">
+              <span className="inline-block rounded-full bg-accent-tint px-3 py-1 text-[11px] font-extrabold tracking-wide text-accent-dark">
+                FOR BUSINESSES
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/check.webp" alt="" aria-hidden className="-mt-2 h-14 w-14 object-contain" />
+            </div>
             <h3 className="mt-4 text-xl font-extrabold text-ink">Digital talent without agency prices</h3>
             <ul className="mt-4 space-y-2.5">
               {BUSINESS_POINTS.map((p) => (
@@ -224,9 +246,8 @@ export default function LandingPage() {
 
       <footer className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 pb-8 text-xs font-medium text-faint">
         <span className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-brand to-brand-light text-[10px] font-extrabold text-white">
-            S
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="SkillBridge logo" className="h-5 w-5" />
           © {new Date().getFullYear()} SkillBridge · Kuala Lumpur
         </span>
         <span className="flex gap-4">

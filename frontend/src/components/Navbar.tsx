@@ -38,9 +38,8 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-white/85 backdrop-blur">
       <div className="mx-auto flex h-[74px] max-w-6xl items-center gap-7 px-6">
         <Link href={user ? "/home" : "/"} className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-gradient-to-br from-brand to-brand-light text-[17px] font-extrabold text-white">
-            S
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="SkillBridge logo" className="h-9 w-9" />
           <span className="text-lg font-extrabold tracking-tight text-ink">SkillBridge</span>
         </Link>
 
