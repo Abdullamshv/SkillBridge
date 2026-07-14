@@ -44,3 +44,40 @@ input::placeholder,
 textarea::placeholder {
   color: var(--color-faint);
 }
+
+/* Hero orbit animations */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(-7px);
+  }
+  50% {
+    transform: translateY(7px);
+  }
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.anim-float {
+  animation: float-y 5.5s ease-in-out infinite;
+}
+
+.anim-spin-slow {
+  animation: spin-slow 55s linear infinite;
+}
+
+.anim-spin-slower {
+  animation: spin-slow 90s linear infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-float,
+  .anim-spin-slow,
+  .anim-spin-slower {
+    animation: none;
+  }
+}

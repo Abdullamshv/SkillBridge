@@ -8,35 +8,44 @@ const STATS = [
   { big: "5", label: "digital skill verticals, campus-vetted" },
 ];
 
-const FLOATING_PILLS = [
-  { icon: "🛡", label: "Safe escrow payments", className: "right-0 top-2" },
-  { icon: "🎓", label: "Campus-vetted talent", className: "left-4 top-20" },
-  { icon: "💸", label: "100% payout for students", className: "right-6 top-56" },
-  { icon: "％", label: "Flat 2% fee, nothing hidden", className: "left-14 bottom-4" },
-];
+/*
+ * Anchored on the orbit rings (outer r=250, inner r=155, center of the
+ * 440px hero box). x/y are px offsets from the center to the marker dot;
+ * the pill extends toward `side` so labels never leave the column.
+ */
+const ORBIT_PILLS = [
+  { icon: "/icons/shield.webp", label: "Safe escrow payments", x: 143, y: -205, side: "left" },
+  { icon: "/icons/medal.webp", label: "Campus-vetted talent", x: -140, y: -66, side: "right" },
+  { icon: "/icons/moneybag.webp", label: "100% payout for students", x: 235, y: 86, side: "left" },
+  { icon: "/icons/calc.webp", label: "Flat 2% fee, nothing hidden", x: -143, y: 205, side: "right" },
+] as const;
+
+/* Decorative nodes sitting on the same rings */
+const ORBIT_DOTS = [
+  { x: -143, y: -205, className: "h-2.5 w-2.5 bg-accent/80" },
+  { x: 143, y: 205, className: "h-2.5 w-2.5 bg-brand-light/80" },
+  { x: 134, y: -78, className: "h-2 w-2 bg-brand/60" },
+  { x: -134, y: 78, className: "h-2 w-2 bg-accent-dark/70" },
+] as const;
 
 const HOW_IT_WORKS = [
   {
     icon: "/icons/profile.webp",
-    tint: "bg-brand-tint",
     title: "Create your profile",
     text: "Students verify with a campus email; businesses with an SSM number. Trust on both sides, day one.",
   },
   {
     icon: "/icons/target.webp",
-    tint: "bg-accent-tint",
     title: "Match on a task",
     text: "Students browse paid tasks; businesses browse vetted talent. Either side can reach out first.",
   },
   {
     icon: "/icons/chat.webp",
-    tint: "bg-brand-tint",
     title: "Chat & deliver in Office",
     text: "Messages, drafts and big files stay in one thread, with a clear status from reach-out to done.",
   },
   {
     icon: "/icons/wallet.webp",
-    tint: "bg-success-tint",
     title: "Get paid — keep 100%",
     text: "Escrow releases when work is approved. Students keep every ringgit; businesses pay a flat 2%.",
   },
@@ -63,12 +72,24 @@ function CheckItem({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TrustPill({ icon, label, className }: { icon: string; label: string; className?: string }) {
+function TrustPill({
+  icon,
+  label,
+  className,
+  delay,
+}: {
+  icon: string;
+  label: string;
+  className?: string;
+  delay?: string;
+}) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-bold text-ink shadow-card ${className ?? ""}`}
+      className={`flex w-max items-center gap-2.5 whitespace-nowrap rounded-full bg-white/90 px-4 py-2 text-xs font-bold text-ink shadow-card backdrop-blur transition-shadow hover:shadow-card-hover ${className ?? ""}`}
+      style={delay ? { animationDelay: delay } : undefined}
     >
-      <span aria-hidden>{icon}</span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={icon} alt="" aria-hidden className="h-8 w-8 object-contain" />
       {label}
     </div>
   );
@@ -121,35 +142,67 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Floating trust pills over the hero gradient orb */}
-        <div className="relative hidden h-[380px] lg:block" aria-hidden>
-          {/* soft ambient wash spilling beyond the orb */}
+        {/* Orbit hero: bright gradient orb, spinning rings, floating 3D trust pills */}
+        <div className="relative hidden h-[440px] lg:block" aria-hidden>
+          {/* ambient glow spilling beyond the orb */}
           <div
-            className="absolute -inset-2 rounded-full opacity-60 blur-3xl"
-            style={{ background: "linear-gradient(135deg,#ECEAFC 0%,#EAE7FA 45%,#FBE6D4 100%)" }}
+            className="absolute inset-4 rounded-full opacity-80 blur-3xl"
+            style={{ background: "linear-gradient(135deg,#D9CFFB 0%,#E9E3FD 40%,#FBD4B0 100%)" }}
           />
-          {/* the orb: large circle with a crisp edge and warm glow */}
+          {/* the orb — saturated brand gradient with a bright core */}
           <div
-            className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
-              border: "1.5px solid rgba(124,98,242,0.16)",
+              border: "1.5px solid rgba(124,98,242,0.30)",
               background:
-                "radial-gradient(circle at 42% 72%, rgba(249,183,140,0.42) 0%, rgba(249,183,140,0.14) 38%, rgba(249,183,140,0) 62%), " +
-                "radial-gradient(circle at 74% 22%, rgba(123,98,242,0.10) 0%, rgba(123,98,242,0) 55%), " +
-                "radial-gradient(circle at 38% 30%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 65%)",
-              boxShadow: "inset 0 -60px 90px rgba(249,183,140,0.16)",
+                "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 46%), " +
+                "radial-gradient(circle at 70% 82%, rgba(240,145,74,0.45) 0%, rgba(240,145,74,0) 56%), " +
+                "radial-gradient(circle at 82% 18%, rgba(123,98,242,0.35) 0%, rgba(123,98,242,0) 52%), " +
+                "linear-gradient(135deg, rgba(123,98,242,0.32) 0%, rgba(183,168,250,0.22) 45%, rgba(249,183,140,0.38) 100%)",
+              boxShadow: "inset 0 -50px 80px rgba(240,145,74,0.18), 0 30px 60px rgba(78,63,227,0.10)",
             }}
           />
-          {FLOATING_PILLS.map((p) => (
-            <TrustPill key={p.label} icon={p.icon} label={p.label} className={`absolute ${p.className}`} />
+          {/* orbit rings the markers sit on */}
+          <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2">
+            <div className="anim-spin-slow h-full w-full rounded-full border-2 border-dashed border-brand-light/35" />
+          </div>
+          <div className="absolute left-1/2 top-1/2 h-[310px] w-[310px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-accent/30" />
+          {/* decorative nodes on the rings */}
+          {ORBIT_DOTS.map((d) => (
+            <span
+              key={`${d.x},${d.y}`}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white ${d.className}`}
+              style={{ left: `calc(50% + ${d.x}px)`, top: `calc(50% + ${d.y}px)` }}
+            />
           ))}
-          <div className="absolute left-10 top-1/2 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-bold text-ink shadow-card">
-            <span className="flex -space-x-1.5">
-              <span className="h-5 w-5 rounded-full bg-brand ring-2 ring-white" />
-              <span className="h-5 w-5 rounded-full bg-accent ring-2 ring-white" />
-              <span className="h-5 w-5 rounded-full bg-success ring-2 ring-white" />
-            </span>
-            Students from UM · USM · UiTM
+          {/* trust pills anchored to marker dots on the rings */}
+          {ORBIT_PILLS.map((p) => (
+            <div
+              key={p.label}
+              className="absolute"
+              style={{ left: `calc(50% + ${p.x}px)`, top: `calc(50% + ${p.y}px)` }}
+            >
+              <span className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-brand-light to-brand shadow-card ring-[3px] ring-white" />
+              <TrustPill
+                icon={p.icon}
+                label={p.label}
+                className={`absolute left-0 top-0 -translate-y-1/2 ${
+                  p.side === "left" ? "-translate-x-[calc(100%_+_14px)]" : "translate-x-3.5"
+                }`}
+              />
+            </div>
+          ))}
+          {/* student avatars chip, anchored to the inner ring */}
+          <div className="absolute" style={{ left: "calc(50% - 150px)", top: "calc(50% + 40px)" }}>
+            <span className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-accent to-accent-dark shadow-card ring-[3px] ring-white" />
+            <div className="absolute left-0 top-0 flex w-max -translate-y-1/2 translate-x-3.5 items-center gap-2 whitespace-nowrap rounded-full bg-white/90 px-4 py-2.5 text-xs font-bold text-ink shadow-card backdrop-blur">
+              <span className="flex -space-x-1.5">
+                <span className="h-5 w-5 rounded-full bg-brand ring-2 ring-white" />
+                <span className="h-5 w-5 rounded-full bg-accent ring-2 ring-white" />
+                <span className="h-5 w-5 rounded-full bg-success ring-2 ring-white" />
+              </span>
+              Students from UM · USM · UiTM
+            </div>
           </div>
         </div>
       </main>
@@ -164,13 +217,8 @@ export default function LandingPage() {
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {HOW_IT_WORKS.map((step) => (
               <div key={step.title} className="rounded-2xl border border-border/70 p-5">
-                <span
-                  className={`flex h-14 w-14 items-center justify-center rounded-xl ${step.tint}`}
-                  aria-hidden
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={step.icon} alt="" className="h-11 w-11 object-contain" />
-                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={step.icon} alt="" aria-hidden className="mx-auto h-20 w-20 object-contain" />
                 <h3 className="mt-3 text-sm font-extrabold text-ink">{step.title}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted">{step.text}</p>
               </div>
@@ -227,8 +275,8 @@ export default function LandingPage() {
           className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl px-8 py-16 text-center shadow-card"
           style={{ background: "linear-gradient(120deg,#ECEAFC 0%,#F7F9FC 45%,#FDEEDE 100%)" }}
         >
-          <TrustPill icon="🛡" label="Escrow held until approved" className="absolute left-10 top-8 hidden lg:flex" />
-          <TrustPill icon="🎓" label="Verified campus talent" className="absolute bottom-8 right-10 hidden lg:flex" />
+          <TrustPill icon="/icons/shield.webp" label="Escrow held until approved" className="anim-float absolute left-10 top-8 hidden lg:flex" />
+          <TrustPill icon="/icons/medal.webp" label="Verified campus talent" delay="1.6s" className="anim-float absolute bottom-8 right-10 hidden lg:flex" />
           <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
             Put campus talent to work.
           </h2>

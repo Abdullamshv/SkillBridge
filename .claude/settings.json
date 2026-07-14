@@ -9,7 +9,15 @@
       "Bash(rm \"/Users/dopflw/Desktop/Skills_Bridge /frontend/src/components/Icon3D.tsx\")",
       "Bash(npm uninstall *)",
       "Bash(curl -s -o /dev/null -w \"landing: %{http_code}\\\\n\" http://localhost:3000/)",
-      "Bash(curl -s -o /dev/null -w \"icon: %{http_code}\\\\n\" http://localhost:3000/icons/wallet.webp)"
+      "Bash(curl -s -o /dev/null -w \"icon: %{http_code}\\\\n\" http://localhost:3000/icons/wallet.webp)",
+      "Bash(curl -s \"https://3dicons.co/explore\")",
+      "Bash(python3)",
+      "Bash(python3 -)",
+      "Bash(curl -s -o medal.webp \"https://bvconuycpdvgzbvbkijl.supabase.co/storage/v1/object/public/sizes/39121b-medal/dynamic/200/gradient.webp\")",
+      "Bash(rm \"/Users/dopflw/Desktop/Skills_Bridge /frontend/public/icons/cap.webp\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s \"http://localhost:3000/_next/static/chunks/%5Broot-of-the-server%5D__1m-c3_j._.css\")"
     ]
   }
 }
